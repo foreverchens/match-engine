@@ -1,0 +1,39 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: match-engine
+
+  codec:
+    max-in-memory-size: 10MB # WebFlux 最大内存（防止接收大 JSON 报错）
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 3000ms
+    # reactive Redis 用 Lettuce，不需额外配置
+    # redisson 若启用，可共享此配置
+
+  main:
+    allow-bean-definition-overriding: true
+
+  jackson:
+    default-property-inclusion: non_null
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+# Swagger 启用开关
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v1/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
