@@ -4,8 +4,8 @@ import org.junit.Test;
 
 import icu.common.OrderSide;
 import icu.common.OrderType;
-import icu.model.Order;
-import icu.model.OrderBook;
+import icu.service.Order;
+import icu.service.OrderBook;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;

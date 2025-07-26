@@ -1,4 +1,4 @@
-package icu.model;
+package icu.service;
 
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
@@ -206,6 +206,11 @@ public class OrderBook {
 		return rlt;
 	}
 
+	/**
+	 *  限价场合、获取目标流动性层、市价场合获取最优流动性层
+	 * @param sourceSide
+	 * @return
+	 */
 	private PriceLevel bestLevel(String sourceSide) {
 		PriceLevel priceLevel = hotZone[lastIdx];
 		Order peek = priceLevel.peek();
@@ -223,8 +228,7 @@ public class OrderBook {
 			return ObjUtil.isNull(hotZone[r].peek())
 				   ? null
 				   : hotZone[r];
-		}
-		else {
+		}else {
 			int l = getLeftIdx(lastIdx);
 			while (l != left && ObjUtil.isNull(hotZone[l].peek())) {
 				l = getLeftIdx(l);

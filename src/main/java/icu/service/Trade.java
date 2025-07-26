@@ -1,4 +1,4 @@
-package icu.model;
+package icu.service;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
