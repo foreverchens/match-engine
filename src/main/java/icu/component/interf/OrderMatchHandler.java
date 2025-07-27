@@ -1,7 +1,7 @@
 package icu.component.interf;
 
-import icu.service.Order;
-import icu.service.Trade;
+import icu.model.Order;
+import icu.model.Trade;
 
 import java.util.List;
 

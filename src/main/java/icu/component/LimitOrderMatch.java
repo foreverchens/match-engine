@@ -3,8 +3,8 @@ package icu.component;
 import org.springframework.stereotype.Component;
 
 import icu.component.interf.OrderMatchHandler;
-import icu.service.Order;
-import icu.service.Trade;
+import icu.model.Order;
+import icu.model.Trade;
 
 import java.util.List;
 

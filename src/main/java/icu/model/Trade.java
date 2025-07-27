@@ -1,4 +1,4 @@
-package icu.service;
+package icu.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,10 +6,13 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
- * @author yyy
- * @tg t.me/ychen5325
+ * 撮合成交原始信息
+ *
+ * @author 中本君
+ * @date 2025/07/27
  */
 @Data
 @ToString
@@ -27,13 +30,7 @@ public class Trade {
 
 	BigDecimal price;
 
-	BigDecimal filledQty;
+	BigDecimal qty;
 
-
-	public Trade(Long bidOrderId, Long askOrderId, BigDecimal price, BigDecimal filledQty) {
-		this.bidOrderId = bidOrderId;
-		this.askOrderId = askOrderId;
-		this.price = price;
-		this.filledQty = filledQty;
-	}
+	LocalDateTime time;
 }

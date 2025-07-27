@@ -98,6 +98,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 高性能无锁队列  -->
+        <dependency>
+            <groupId>com.lmax</groupId>
+            <artifactId>disruptor</artifactId>
+            <version>3.4.4</version>
+        </dependency>
+
         <!-- WebFlux 栈 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
