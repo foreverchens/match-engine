@@ -15,7 +15,6 @@
 
     <!-- 文件输出，按日期滚动 -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- ✅ 不再设置 <file>，避免与 fileNamePattern 冲突 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>15</maxHistory>

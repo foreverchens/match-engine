@@ -1,4 +1,4 @@
-package icu.component.global;
+package icu.service.global;
 
 import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;

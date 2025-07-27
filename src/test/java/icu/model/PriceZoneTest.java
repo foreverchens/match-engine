@@ -23,13 +23,10 @@ public class PriceZoneTest {
 
 	PriceZone priceZone;
 
-	Order bid1 = new Order(10, 10, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE);
+	Order bid1 = new Order("BTCUSDT", 10, 10, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE);
 
-	Order bid2 = new Order(11, 11, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE);
+	Order bid2 = new Order("BTCUSDT", 11, 11, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE);
 
-	Order ask3 = new Order(20, 20, OrderSide.ASK, OrderType.LIMIT, BigDecimal.valueOf(111), BigDecimal.ONE);
-
-	Order ask4 = new Order(21, 21, OrderSide.ASK, OrderType.LIMIT, BigDecimal.valueOf(111), BigDecimal.ONE);
 
 	@Before
 	public void before() {
@@ -90,7 +87,8 @@ public class PriceZoneTest {
 		priceZone.push(bid2);
 		Assert.assertEquals(priceZone.print().toString(), "[10, 11]");
 
-		priceZone.push(new Order(12, 12, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE));
+		priceZone.push(
+				new Order("BTCUSDT", 12, 12, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE));
 		Assert.assertEquals(priceZone.print().toString(), "[10, 11, 12]");
 		Assert.assertEquals(10, priceZone.peek().orderId);
 

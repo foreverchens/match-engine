@@ -1,6 +1,7 @@
 package icu.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,12 +15,15 @@ import java.time.LocalDateTime;
  * @date 2025/07/27
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Order {
 	long orderId;
 
 	long userId;
+
+	String symbol;
 
 	/**
 	 * OrderSide
@@ -55,7 +59,9 @@ public class Order {
 	 */
 	Order next, prev;
 
-	public Order(long userId, long orderId, String side, String type, BigDecimal price, BigDecimal origQty) {
+	public Order(String symbol, long userId, long orderId, String side, String type, BigDecimal price,
+				 BigDecimal origQty) {
+		this.symbol = symbol;
 		this.userId = userId;
 		this.orderId = orderId;
 		this.side = side;
@@ -68,7 +74,8 @@ public class Order {
 
 	@Override
 	public String toString() {
-		return "Order{" + "orderId=" + orderId + ", price=" + price + ", origQty=" + origQty + ", filledQty=" +
-			   filledQty + ", overQty=" + overQty + ", side='" + side + '\'' + ", type='" + type + '}';
+		return "Order{" + "orderId=" + orderId + ", userId=" + userId + ", symbol='" + symbol + '\'' + ", side='" +
+			   side + '\'' + ", type='" + type + '\'' + ", price=" + price + ", origQty=" + origQty + ", filledQty=" +
+			   filledQty + ", overQty=" + overQty + ", status=" + status + ", createdAt=" + createdAt + '}';
 	}
 }

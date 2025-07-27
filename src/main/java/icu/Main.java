@@ -2,8 +2,14 @@ package icu;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.netty.http.client.HttpClient;
+
+import java.time.Duration;
 
 /**
  * 伟大的撮合引擎
@@ -21,5 +27,13 @@ public class Main {
 		SpringApplication.run(Main.class, args);
 		log.info("-------------suc-------------");
 		log.info("api doc :  http://localhost:8080/webjars/swagger-ui/index.html");
+	}
+
+
+	@Bean
+	public WebClient webClient() {
+		HttpClient httpClient = HttpClient.create().responseTimeout(Duration.ofSeconds(5));
+		return WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).build();
+
 	}
 }

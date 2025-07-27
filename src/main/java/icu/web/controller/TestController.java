@@ -36,8 +36,6 @@ public class TestController {
 		});
 	}
 
-
-
 	@Data
 	@Schema(description = "创建用户请求参数")
 	public static class User{
