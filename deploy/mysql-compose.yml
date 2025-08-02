@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.36          # 推荐写明小版本号，保证一致性
+    container_name: r2dbc-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: test
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      TZ: Asia/Shanghai          # 推荐加上时区，避免时区警告
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql   # 数据持久化
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # 启动时自动执行SQL（可选）
+    command:
+      --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci

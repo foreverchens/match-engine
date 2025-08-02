@@ -49,7 +49,7 @@ public class Order {
 
 	BigDecimal overQty;
 
-	int status;
+	Integer status;
 
 	LocalDateTime createdAt;
 

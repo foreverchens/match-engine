@@ -1,6 +1,6 @@
-package icu.service.web;
+package icu.service.global;
 
-import icu.service.web.model.OrderResult;
+import icu.web.model.OrderResult;
 import reactor.core.publisher.MonoSink;
 
 import java.util.concurrent.ConcurrentHashMap;

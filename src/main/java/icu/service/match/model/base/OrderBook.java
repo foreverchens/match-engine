@@ -12,10 +12,10 @@ import java.util.List;
  */
 public abstract class OrderBook {
 
+
 	/**
 	 * 添加订单
-	 * 添加前尝试撮合
-	 *
+	 * 如果发生撮合 将返回成交列表 同时order发生变化
 	 * @param o
 	 * @return
 	 */

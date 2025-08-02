@@ -18,9 +18,12 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <redisson.version>3.23.5</redisson.version>
+        <spring.boot.version>2.7.18</spring.boot.version>
+        <r2dbc.mysql.version>1.0.5</r2dbc.mysql.version>
+        <r2dbc.pool.version>1.0.0.RELEASE</r2dbc.pool.version>
     </properties>
 
     <dependencies>
@@ -123,6 +126,28 @@
             <artifactId>netty-resolver-dns-native-macos</artifactId>
             <version>4.1.108.Final</version> <!-- 版本号用Netty主依赖一致或最新 -->
             <classifier>osx-aarch_64</classifier>  <!-- Apple Silicon (M1/M2) 用 -->
+        </dependency>
+
+        <!-- Spring Data R2DBC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- R2DBC MySQL 驱动 -->
+        <dependency>
+            <groupId>io.asyncer</groupId>
+            <artifactId>r2dbc-mysql</artifactId>
+            <version>0.9.7</version>
+        </dependency>
+
+
+        <!-- R2DBC 连接池 -->
+        <dependency>
+            <groupId>io.r2dbc</groupId>
+            <artifactId>r2dbc-pool</artifactId>
+            <version>${r2dbc.pool.version}</version>
         </dependency>
 
         <!-- 响应式 Redis -->

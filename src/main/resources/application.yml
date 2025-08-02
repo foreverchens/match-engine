@@ -13,6 +13,14 @@ spring:
   codec:
     max-in-memory-size: 10MB # WebFlux 最大内存（防止接收大 JSON 报错）
 
+  r2dbc:
+    url: r2dbc:pool:mysql://localhost:3306/test?initialSize=5&maxSize=20
+    username: test
+    password: test
+  # 可选：关闭数据源自动配置（推荐，不用JDBC）
+  datasource:
+    driver-class-name: none
+
   redis:
     host: localhost
     port: 6379

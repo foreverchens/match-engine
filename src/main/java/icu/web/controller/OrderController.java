@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import icu.service.web.OrderService;
-import icu.service.web.model.OrderParam;
-import icu.service.web.model.OrderResult;
+import icu.web.model.OrderResult;
+import icu.web.model.OriginOrder;
+import icu.web.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import reactor.core.publisher.Mono;
@@ -30,7 +30,7 @@ public class OrderController {
 
 	@PostMapping
 	@Operation(summary = "提交撮合", description = "接收订单提交撮合并返回撮合结果")
-	public Mono<OrderResult> submit(@RequestBody @Validated Mono<OrderParam> orderMono) {
+	public Mono<OrderResult> submit(@RequestBody @Validated Mono<OriginOrder> orderMono) {
 		return orderMono.flatMap(order -> orderService.submit(order));
 	}
 

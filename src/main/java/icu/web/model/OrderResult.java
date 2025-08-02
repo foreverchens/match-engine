@@ -1,11 +1,14 @@
-package icu.service.web.model;
+package icu.web.model;
 
 import icu.common.OrderSide;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * @author 中本君
@@ -14,10 +17,12 @@ import java.math.BigDecimal;
 @Data
 @Builder
 @ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderResult {
-	long orderId;
+	Long orderId;
 
-	long userId;
+	Long userId;
 
 	String symbol;
 
@@ -35,10 +40,18 @@ public class OrderResult {
 
 	BigDecimal price;
 
-	Integer status;
-
 	/**
 	 * 原始订单数量 已填充数量 剩余数量
 	 */
 	BigDecimal origQty;
+
+	BigDecimal filledQty;
+
+	BigDecimal overQty;
+
+	Integer status;
+
+	LocalDateTime createdAt;
+
+
 }

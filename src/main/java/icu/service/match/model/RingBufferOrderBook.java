@@ -127,7 +127,15 @@ public class RingBufferOrderBook extends OrderBook {
 			marketMatch(o);
 			return null;
 		}
-
+		// 客观市价单 价格劣于市场价的限价单
+		if (o.side.isAsk() && lastP.compareTo(o.price) > 0) {
+			// 低于市价的限价卖单、便宜卖场合
+			return match(o);
+		}
+		if (!o.side.isAsk() && lastP.compareTo(o.price) < 0) {
+			// 高于市价的限价买单、溢价买场合
+			return match(o);
+		}
 
 		BigDecimal price = o.price;
 		if (price.compareTo(hotZone[left].price) < 0) {
@@ -152,15 +160,7 @@ public class RingBufferOrderBook extends OrderBook {
 			return Collections.emptyList();
 		}
 
-		// 处于当前热区
-		if (o.side.isAsk() && lastP.compareTo(o.price) > 0) {
-			// 低于市价的限价卖单、便宜卖场合
-			return match(o);
-		}
-		if (!o.side.isAsk() && lastP.compareTo(o.price) < 0) {
-			// 高于市价的限价买单、溢价买场合
-			return match(o);
-		}
+
 		int targetIdx = getTargetIdx(price);
 		PriceZone targetZone = hotZone[targetIdx];
 		if (targetIdx == lastIdx) {
@@ -265,7 +265,7 @@ public class RingBufferOrderBook extends OrderBook {
 				break;
 			}
 			// 吃掉流动性
-			long bidUserId = peek.orderId;
+			long bidUserId = peek.userId;
 			long bidOrderId = peek.orderId;
 			BigDecimal exeQty = askOrder.overQty.compareTo(peek.origQty) > 0
 								? peek.origQty

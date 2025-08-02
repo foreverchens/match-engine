@@ -27,21 +27,6 @@ public class Main {
 		SpringApplication.run(Main.class, args);
 		log.info("-------------suc-------------");
 		log.info("api doc :  http://localhost:8080/webjars/swagger-ui/index.html");
-		// while (true) {
-		// 	try {
-		// 		TimeUnit.SECONDS.sleep(3);
-		// 	} catch (InterruptedException e) {
-		// 		throw new RuntimeException(e);
-		// 	}
-		// 	// 这里写你的定时任务逻辑
-		// 	Instant time = Instant.now();
-		// 	log.info("定时任务执行：" + time);
-		// 	MonoSink<OrderResult> sink = MonoSinkManage.getSink(1L);
-		// 	if (ObjectUtil.isNotNull(sink)) {
-		// 		sink.success(OrderResult.builder().orderId(1L).type(OrderType.LIMIT).userId(1L).status(1).symbol("bu")
-		// 		.side(OrderSide.ASK).price(BigDecimal.ONE).origQty(BigDecimal.ONE).build());
-		// 	}
-		// }
 	}
 
 
