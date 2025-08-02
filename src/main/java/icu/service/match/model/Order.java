@@ -1,5 +1,6 @@
-package icu.model;
+package icu.service.match.model;
 
+import icu.common.OrderSide;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,7 +30,7 @@ public class Order {
 	 * OrderSide
 	 * BID ｜ ASK
 	 */
-	String side;
+	OrderSide side;
 
 	/**
 	 * OrderType
@@ -59,7 +60,7 @@ public class Order {
 	 */
 	Order next, prev;
 
-	public Order(String symbol, long userId, long orderId, String side, String type, BigDecimal price,
+	public Order(String symbol, long userId, long orderId, OrderSide side, String type, BigDecimal price,
 				 BigDecimal origQty) {
 		this.symbol = symbol;
 		this.userId = userId;

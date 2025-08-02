@@ -1,4 +1,4 @@
-package icu.model;
+package icu.service.match.model;
 
 import lombok.Data;
 
@@ -48,7 +48,7 @@ public class PriceZone {
 	 * 添加订单至尾部链表
 	 * @param o
 	 */
-	public void push(Order o) {
+	public void submit(Order o) {
 		orderIdMap.put(o.orderId, o);
 		totalQty = totalQty.add(o.origQty);
 		o.prev = tail.prev;
@@ -78,7 +78,7 @@ public class PriceZone {
 		totalQty = totalQty.subtract(filledQty);
 
 		if (order.overQty.compareTo(BigDecimal.ZERO) <= 0) {
-			this.remove(orderId);
+			this.cancel(orderId);
 		}
 		return order;
 	}
@@ -88,7 +88,7 @@ public class PriceZone {
 	 * @param orderId
 	 * @return
 	 */
-	Order remove(long orderId) {
+	Order cancel(long orderId) {
 		Order order = orderIdMap.remove(orderId);
 		if (Objects.isNull(order)) {
 			return null;
@@ -97,6 +97,16 @@ public class PriceZone {
 		order.prev.next = order.next;
 		order.next.prev = order.prev;
 		return order;
+	}
+
+	/**
+	 * 判断当前价格槽方向
+	 */
+	boolean isAsk() {
+		if (isEmpty()) {
+			return true;
+		}
+		return head.next.side.isAsk();
 	}
 
 	List<Long> print() {

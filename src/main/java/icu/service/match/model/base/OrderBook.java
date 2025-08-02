@@ -1,7 +1,7 @@
-package icu.model.base;
+package icu.service.match.model.base;
 
-import icu.model.Order;
-import icu.model.Trade;
+import icu.service.match.model.Order;
+import icu.service.match.model.Trade;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.List;
  * @author 中本君
  * @date 2025/07/27 
  */
-public abstract class BaseOrderBook {
+public abstract class OrderBook {
 
 	/**
 	 * 添加订单
@@ -19,7 +19,7 @@ public abstract class BaseOrderBook {
 	 * @param o
 	 * @return
 	 */
-	protected abstract List<Trade> push(Order o);
+	protected abstract List<Trade> submit(Order o);
 
 
 	/**
@@ -29,7 +29,7 @@ public abstract class BaseOrderBook {
 	 * @param price 用于定位在哪个槽
 	 * @return
 	 */
-	protected abstract Order remove(Long orderId, BigDecimal price);
+	protected abstract Order cancel(Long orderId, BigDecimal price);
 
 
 	/**

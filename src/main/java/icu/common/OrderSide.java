@@ -4,18 +4,17 @@ package icu.common;
  * @author yyy
  * @tg t.me/ychen5325
  */
-public interface OrderSide {
-	String BID = "BID";
-
-	String ASK = "ASK";
-
+public enum OrderSide {
 	/**
-	 *  判断是否为卖单
-	 *
-	 * @param side side
-	 * @return isMarket
+	 * bid ask
 	 */
-	static boolean isAsk(String side) {
-		return ASK.equalsIgnoreCase(side);
+	BID, ASK;
+
+	public boolean isAsk() {
+		return "ASK".equalsIgnoreCase(this.name());
+	}
+
+	public boolean eq(OrderSide side) {
+		return this.name().equalsIgnoreCase(side.name());
 	}
 }

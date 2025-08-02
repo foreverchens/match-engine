@@ -1,11 +1,14 @@
-package icu.model;
+package icu.service.match.model;
 
 import cn.hutool.core.util.ObjUtil;
-import cn.hutool.core.util.StrUtil;
 
 import icu.common.OrderSide;
 import icu.common.OrderType;
-import icu.model.base.BaseOrderBook;
+import icu.service.disruptor.OrderEventHandler;
+import icu.service.match.model.base.OrderBook;
+import lombok.Builder;
+import lombok.Data;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,11 +22,12 @@ import java.util.TreeMap;
 
 /**
  * 订单簿实现
+ * 基于环形数组实现
  *
  * @author 中本君
  * @date 2025/07/27
  */
-public class OrderBook extends BaseOrderBook {
+public class RingBufferOrderBook extends OrderBook {
 
 
 	private String symbol;
@@ -64,8 +68,11 @@ public class OrderBook extends BaseOrderBook {
 
 	private TreeMap<BigDecimal, PriceZone> highZone;
 
-	public OrderBook(String symbol, int len, BigDecimal curPrice, BigDecimal step, int reBalanceThreshold) {
-		init(symbol, len, curPrice, step, reBalanceThreshold);
+	private final OrderEventHandler orderEventHandler;
+
+	public RingBufferOrderBook(Params params) {
+		this.init(params.getSymbol(), params.getLen(), params.getCurP(), params.getStep(), params.getReBalId());
+		orderEventHandler = params.getOrderEventHandler();
 	}
 
 	/**
@@ -75,7 +82,7 @@ public class OrderBook extends BaseOrderBook {
 	 * @param step  价格步长
 	 * @param balanceThreshold 重新平衡阈值
 	 */
-	private void init(String symbol, int len, BigDecimal curPrice, BigDecimal step, int balanceThreshold) {
+	private void init(String symbol, Integer len, BigDecimal curPrice, BigDecimal step, Integer balanceThreshold) {
 		this.symbol = symbol;
 		this.length = len;
 
@@ -115,10 +122,12 @@ public class OrderBook extends BaseOrderBook {
 	 * @param o
 	 */
 	@Override
-	public List<Trade> push(Order o) {
+	public List<Trade> submit(Order o) {
 		if (OrderType.isMarket(o.type)) {
-			return match(o);
+			marketMatch(o);
+			return null;
 		}
+
 
 		BigDecimal price = o.price;
 		if (price.compareTo(hotZone[left].price) < 0) {
@@ -128,7 +137,7 @@ public class OrderBook extends BaseOrderBook {
 				priceZone = new PriceZone(price);
 				lowZone.put(price, priceZone);
 			}
-			priceZone.push(o);
+			priceZone.submit(o);
 			return Collections.emptyList();
 		}
 
@@ -139,16 +148,16 @@ public class OrderBook extends BaseOrderBook {
 				priceZone = new PriceZone(price);
 				highZone.put(price, priceZone);
 			}
-			priceZone.push(o);
+			priceZone.submit(o);
 			return Collections.emptyList();
 		}
 
 		// 处于当前热区
-		if (OrderSide.isAsk(o.side) && lastP.compareTo(o.price) > 0) {
+		if (o.side.isAsk() && lastP.compareTo(o.price) > 0) {
 			// 低于市价的限价卖单、便宜卖场合
 			return match(o);
 		}
-		if (!OrderSide.isAsk(o.side) && lastP.compareTo(o.price) < 0) {
+		if (!o.side.isAsk() && lastP.compareTo(o.price) < 0) {
 			// 高于市价的限价买单、溢价买场合
 			return match(o);
 		}
@@ -156,12 +165,12 @@ public class OrderBook extends BaseOrderBook {
 		PriceZone targetZone = hotZone[targetIdx];
 		if (targetIdx == lastIdx) {
 			// 等于市价的限价单、若方向相反、原地撮合
-			if (!targetZone.isEmpty() && !StrUtil.equals(o.side, targetZone.head.next.side)) {
+			if (!targetZone.isEmpty() && !Objects.equals(o.side, targetZone.head.next.side)) {
 				// 当前槽 有订单 且 两者订单方向相反 原地撮合
 				return match(o);
 			}
 		}
-		targetZone.push(o);
+		targetZone.submit(o);
 		return Collections.emptyList();
 	}
 
@@ -172,15 +181,15 @@ public class OrderBook extends BaseOrderBook {
 	 * @return
 	 */
 	@Override
-	public Order remove(Long orderId, BigDecimal price) {
-		Order rlt = null;
+	public Order cancel(Long orderId, BigDecimal price) {
+		Order rlt;
 		if (price.compareTo(hotZone[left].price) < 0) {
 			// low zone
 			PriceZone priceZone = lowZone.get(price);
 			if (Objects.isNull(priceZone)) {
 				return null;
 			}
-			rlt = priceZone.remove(orderId);
+			rlt = priceZone.cancel(orderId);
 			if (priceZone.isEmpty()) {
 				lowZone.remove(price);
 			}
@@ -193,14 +202,14 @@ public class OrderBook extends BaseOrderBook {
 			if (Objects.isNull(priceZone)) {
 				return null;
 			}
-			rlt = priceZone.remove(orderId);
+			rlt = priceZone.cancel(orderId);
 			if (priceZone.isEmpty()) {
 				lowZone.remove(price);
 			}
 			return rlt;
 		}
-
-		return hotZone[getTargetIdx(price)].remove(orderId);
+		// 最小步长
+		return hotZone[getTargetIdx(price)].cancel(orderId);
 	}
 
 	/**
@@ -224,9 +233,18 @@ public class OrderBook extends BaseOrderBook {
 	 */
 	@Override
 	public List<Trade> match(Order order) {
-		return OrderSide.isAsk(order.side)
+		return order.side.isAsk()
 			   ? matchForAsk(order)
 			   : matchForBid(order);
+	}
+
+	private void marketMatch(Order o) {
+		if (canFillMarketOrder(o.side, o.origQty)) {
+			match(o);
+		}
+		else {
+			// 无法全部撮合
+		}
 	}
 
 	private List<Trade> matchForAsk(Order askOrder) {
@@ -269,7 +287,7 @@ public class OrderBook extends BaseOrderBook {
 			// 部分撮合 提交到订单簿
 			int targetIdx = getTargetIdx(askOrder.price);
 			PriceZone targetZone = hotZone[targetIdx];
-			targetZone.push(askOrder);
+			targetZone.submit(askOrder);
 		}
 		return rlt;
 	}
@@ -314,19 +332,19 @@ public class OrderBook extends BaseOrderBook {
 			// 部分撮合 提交到订单簿
 			int targetIdx = getTargetIdx(bidOrder.price);
 			PriceZone targetZone = hotZone[targetIdx];
-			targetZone.push(bidOrder);
+			targetZone.submit(bidOrder);
 		}
 		return rlt;
 	}
 
 	private boolean matchable(Order order, Order peek) {
-		if (StrUtil.equals(order.side, peek.side)) {
+		if (Objects.equals(order.side, peek.side)) {
 			return false;
 		}
 		if (OrderType.isMarket(order.type)) {
 			return true;
 		}
-		if (OrderSide.isAsk(order.side)) {
+		if (order.side.isAsk()) {
 			// ask
 			return order.price.compareTo(peek.price) <= 0;
 		}
@@ -337,20 +355,50 @@ public class OrderBook extends BaseOrderBook {
 	}
 
 	/**
+	 * 检查当前深度能否满足市价订单要求
+	 *  仅检查除了left和right两点的热区
+	 */
+	boolean canFillMarketOrder(OrderSide side, BigDecimal marketQty) {
+		BigDecimal totalQty = BigDecimal.ZERO;
+		PriceZone lastZone = hotZone[lastIdx];
+		if (lastZone.isAsk() && !side.isAsk()) {
+			// 不同向 可匹配
+			totalQty = totalQty.add(lastZone.totalQty);
+		}
+		if (side.isAsk()) {
+			// buy
+			int idx = getLeftIdx(lastIdx);
+			while (idx != left && totalQty.compareTo(marketQty) < 0) {
+				totalQty = totalQty.add(hotZone[idx].totalQty);
+				idx = getLeftIdx(idx);
+			}
+		}
+		else {
+			// sell
+			int idx = getRightIdx(lastIdx);
+			while (idx != right && totalQty.compareTo(marketQty) < 0) {
+				totalQty = totalQty.add(hotZone[idx].totalQty);
+				idx = getRightIdx(idx);
+			}
+		}
+		return totalQty.compareTo(marketQty) >= 0;
+	}
+
+	/**
 	 *  获取最优流动性
 	 * @param sourceSide
 	 * @return
 	 */
-	private PriceZone bestLevel(String sourceSide) {
+	private PriceZone bestLevel(OrderSide sourceSide) {
 		PriceZone priceZone = hotZone[lastIdx];
 		Order peek = priceZone.peek();
 		if (ObjUtil.isNotNull(peek)) {
-			if (!StrUtil.equals(sourceSide, peek.side)) {
+			if (!Objects.equals(sourceSide, peek.side)) {
 				// 当前价格槽 方向相反
 				return priceZone;
 			}
 		}
-		if (!OrderSide.isAsk(sourceSide)) {
+		if (!sourceSide.isAsk()) {
 			// 买场合 找卖1 价
 			int r = getRightIdx(lastIdx);
 			while (r != right && ObjUtil.isNull(hotZone[r].peek())) {
@@ -464,4 +512,26 @@ public class OrderBook extends BaseOrderBook {
 	// 		hotZone[0] = e.getValue();
 	// 	}
 	// }
+
+	/**
+	 * 构建参数
+	 */
+	@Data
+	@Builder
+	@ToString
+	public static class Params {
+		// }
+		private String symbol;
+
+		private Integer len;
+
+		private BigDecimal curP;
+
+		private BigDecimal step;
+
+		private Integer reBalId;
+
+		private OrderEventHandler orderEventHandler;
+
+	}
 }

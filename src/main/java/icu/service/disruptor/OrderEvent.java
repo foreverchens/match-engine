@@ -1,6 +1,6 @@
 package icu.service.disruptor;
 
-import icu.model.Order;
+import icu.service.match.model.Order;
 import lombok.Data;
 
 /**

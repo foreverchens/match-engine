@@ -1,4 +1,4 @@
-package icu.model;
+package icu.service.match.model;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,18 +36,18 @@ public class PriceZoneTest {
 
 	@Test
 	public void simplePushTest() {
-		priceZone.push(bid1);
+		priceZone.submit(bid1);
 		List<Long> orderIdList = priceZone.print();
 		Assert.assertEquals(orderIdList.size(), 1);
 	}
 
 	@Test
-	public void simpleRemoveTest() {
-		Order order = priceZone.remove(10L);
+	public void simplecancelTest() {
+		Order order = priceZone.cancel(10L);
 		Assert.assertNull(order);
 
-		priceZone.push(bid1);
-		order = priceZone.remove(10L);
+		priceZone.submit(bid1);
+		order = priceZone.cancel(10L);
 		Assert.assertEquals(10L, order.orderId);
 	}
 
@@ -56,7 +56,7 @@ public class PriceZoneTest {
 		Order order = priceZone.peek();
 		Assert.assertNull(order);
 
-		priceZone.push(bid1);
+		priceZone.submit(bid1);
 		order = priceZone.peek();
 		Assert.assertEquals(10L, order.orderId);
 	}
@@ -66,7 +66,7 @@ public class PriceZoneTest {
 		List<Long> list = priceZone.print();
 		Assert.assertEquals(list.size(), 0);
 
-		priceZone.push(bid1);
+		priceZone.submit(bid1);
 		list = priceZone.print();
 
 		Assert.assertEquals(10L, (long) list.get(0));
@@ -78,35 +78,35 @@ public class PriceZoneTest {
 	@Test
 	public void multiPushTest() {
 		Assert.assertTrue(priceZone.isEmpty());
-		priceZone.push(bid1);
+		priceZone.submit(bid1);
 		Assert.assertEquals(priceZone.print().toString(), "[10]");
 		Assert.assertFalse(priceZone.isEmpty());
 
 		Assert.assertEquals(10, priceZone.peek().orderId);
 
-		priceZone.push(bid2);
+		priceZone.submit(bid2);
 		Assert.assertEquals(priceZone.print().toString(), "[10, 11]");
 
-		priceZone.push(
+		priceZone.submit(
 				new Order("BTCUSDT", 12, 12, OrderSide.BID, OrderType.LIMIT, BigDecimal.valueOf(99), BigDecimal.ONE));
 		Assert.assertEquals(priceZone.print().toString(), "[10, 11, 12]");
 		Assert.assertEquals(10, priceZone.peek().orderId);
 
-		priceZone.remove(11);
+		priceZone.cancel(11);
 		Assert.assertEquals(priceZone.print().toString(), "[10, 12]");
 
-		priceZone.remove(10);
+		priceZone.cancel(10);
 		Assert.assertEquals(priceZone.print().toString(), "[12]");
 		Assert.assertEquals(12, priceZone.peek().orderId);
 
-		priceZone.push(bid1);
+		priceZone.submit(bid1);
 		Assert.assertEquals(priceZone.print().toString(), "[12, 10]");
 
-		priceZone.remove(10);
+		priceZone.cancel(10);
 		Assert.assertEquals(priceZone.print().toString(), "[12]");
 		Assert.assertFalse(priceZone.isEmpty());
 
-		priceZone.remove(12);
+		priceZone.cancel(12);
 		Assert.assertEquals(priceZone.print().toString(), "[]");
 		Assert.assertTrue(priceZone.isEmpty());
 

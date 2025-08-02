@@ -1,0 +1,38 @@
+package icu.web.controller;
+
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import icu.service.web.OrderService;
+import icu.service.web.model.OrderParam;
+import icu.service.web.model.OrderResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import reactor.core.publisher.Mono;
+
+import javax.annotation.Resource;
+
+/**
+ * @author 中本君
+ * @date 2025/08/02 
+ */
+@Validated
+@RestController
+@RequestMapping("/api/order")
+@Tag(name = "订单接口", description = "订单接口相关操作")
+public class OrderController {
+
+	@Resource
+	private OrderService orderService;
+
+	@PostMapping
+	@Operation(summary = "提交撮合", description = "接收订单提交撮合并返回撮合结果")
+	public Mono<OrderResult> submit(@RequestBody @Validated Mono<OrderParam> orderMono) {
+		return orderMono.flatMap(order -> orderService.submit(order));
+	}
+
+
+}

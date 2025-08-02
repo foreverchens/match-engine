@@ -1,6 +1,6 @@
 package icu.service.match.interfac;
 
-import icu.model.Order;
+import icu.service.match.model.Order;
 
 /**
  * 撮合引擎接口

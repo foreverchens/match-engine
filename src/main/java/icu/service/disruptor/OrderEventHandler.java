@@ -22,6 +22,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 
 	@Override
 	public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
+		log.info("订单处理:{}", event.getOrder());
 		matchEngine.submit(event.getOrder());
 	}
 }
