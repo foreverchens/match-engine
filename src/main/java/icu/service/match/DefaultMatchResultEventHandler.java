@@ -1,7 +1,5 @@
 package icu.service.match;
 
-import com.alibaba.fastjson.JSON;
-
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 
@@ -27,12 +25,12 @@ public class DefaultMatchResultEventHandler implements MatchResultEventHandler {
 		}
 		Order order = event.getOrder();
 		if (ObjectUtil.isNotNull(order)) {
-			log.info("matched order is {}", JSON.toJSONString(order));
+			log.info("matched order is {}", order);
 		}
 		List<Trade> tradeList = event.getTradeList();
 		if (CollectionUtil.isNotEmpty(tradeList)) {
 			for (Trade trade : tradeList) {
-				log.info("matched trade is {}", JSON.toJSONString(trade));
+				log.info("matched trade is {}", trade.toString());
 			}
 		}
 	}

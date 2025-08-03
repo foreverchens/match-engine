@@ -1,10 +1,11 @@
 package icu.service.match.model;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjUtil;
 
 import icu.common.OrderSide;
 import icu.common.OrderType;
-import icu.service.disruptor.OrderEventHandler;
+import icu.service.match.interfac.MatchResultEventHandler;
 import icu.service.match.model.base.OrderBook;
 import lombok.Builder;
 import lombok.Data;
@@ -68,11 +69,11 @@ public class RingBufferOrderBook extends OrderBook {
 
 	private TreeMap<BigDecimal, PriceZone> highZone;
 
-	private final OrderEventHandler orderEventHandler;
+	private final MatchResultEventHandler matchResultEventHandler;
 
 	public RingBufferOrderBook(Params params) {
 		this.init(params.getSymbol(), params.getLen(), params.getCurP(), params.getStep(), params.getReBalId());
-		orderEventHandler = params.getOrderEventHandler();
+		matchResultEventHandler = params.getMatchResultEventHandler();
 	}
 
 	/**
@@ -165,7 +166,7 @@ public class RingBufferOrderBook extends OrderBook {
 		PriceZone targetZone = hotZone[targetIdx];
 		if (targetIdx == lastIdx) {
 			// 等于市价的限价单、若方向相反、原地撮合
-			if (!targetZone.isEmpty() && !Objects.equals(o.side, targetZone.head.next.side)) {
+			if (!targetZone.isEmpty() && !targetZone.head.next.side.eq(o.side)) {
 				// 当前槽 有订单 且 两者订单方向相反 原地撮合
 				return match(o);
 			}
@@ -233,9 +234,13 @@ public class RingBufferOrderBook extends OrderBook {
 	 */
 	@Override
 	public List<Trade> match(Order order) {
-		return order.side.isAsk()
-			   ? matchForAsk(order)
-			   : matchForBid(order);
+		List<Trade> trades = order.side.isAsk()
+							 ? matchForAsk(order)
+							 : matchForBid(order);
+		if (CollectionUtil.isNotEmpty(trades)) {
+			matchResultEventHandler.handle(new MatchResultEvent(null, trades));
+		}
+		return trades;
 	}
 
 	private void marketMatch(Order o) {
@@ -245,6 +250,13 @@ public class RingBufferOrderBook extends OrderBook {
 		else {
 			// 无法全部撮合
 		}
+	}
+
+	private int getTargetIdx(BigDecimal price) {
+		int idxStep = price.subtract(lastP)
+						   .divide(this.step)
+						   .intValue();
+		return lastIdx + idxStep;
 	}
 
 	private List<Trade> matchForAsk(Order askOrder) {
@@ -272,7 +284,12 @@ public class RingBufferOrderBook extends OrderBook {
 								: askOrder.overQty;
 
 			// 更新流动性
-			priceZone.patch(peek.orderId, exeQty);
+			peek = priceZone.patch(peek.orderId, exeQty);
+			if (peek.overQty.compareTo(BigDecimal.ZERO) <= 0) {
+				priceZone.cancel(peek.orderId);
+				peek.setStatus(2);
+				matchResultEventHandler.handle(new MatchResultEvent(peek, null));
+			}
 
 			// 更新订单
 			askOrder.overQty = askOrder.overQty.subtract(exeQty);
@@ -288,51 +305,6 @@ public class RingBufferOrderBook extends OrderBook {
 			int targetIdx = getTargetIdx(askOrder.price);
 			PriceZone targetZone = hotZone[targetIdx];
 			targetZone.submit(askOrder);
-		}
-		return rlt;
-	}
-
-	private List<Trade> matchForBid(Order bidOrder) {
-		long bidUserId = bidOrder.userId;
-		long bidOrderId = bidOrder.orderId;
-
-		List<Trade> rlt = new ArrayList<>();
-		while (bidOrder.overQty.compareTo(BigDecimal.ZERO) > 0) {
-			// 订单剩余量 大于 0
-			PriceZone priceZone = bestLevel(bidOrder.side);
-			if (Objects.isNull(priceZone)) {
-				// 没有最优的
-				break;
-			}
-			Order peek = priceZone.peek();
-			if (ObjUtil.isNull(peek) || !matchable(bidOrder, peek)) {
-				// 限价价格不匹配
-				break;
-			}
-			// 吃掉流动性
-			long askUserId = peek.orderId;
-			long askOrderId = peek.orderId;
-			BigDecimal exeQty = bidOrder.overQty.compareTo(peek.overQty) > 0
-								? peek.overQty
-								: bidOrder.overQty;
-
-			// 更新流动性
-			priceZone.patch(peek.orderId, exeQty);
-
-			// 更新订单
-			bidOrder.overQty = bidOrder.overQty.subtract(exeQty);
-			bidOrder.filledQty = bidOrder.filledQty.add(exeQty);
-
-			// 生成trade
-			Trade trade = new Trade(bidUserId, askUserId, bidOrderId, askOrderId, peek.price, exeQty,
-									LocalDateTime.now());
-			rlt.add(trade);
-		}
-		if (bidOrder.overQty.compareTo(BigDecimal.ZERO) > 0) {
-			// 部分撮合 提交到订单簿
-			int targetIdx = getTargetIdx(bidOrder.price);
-			PriceZone targetZone = hotZone[targetIdx];
-			targetZone.submit(bidOrder);
 		}
 		return rlt;
 	}
@@ -420,9 +392,54 @@ public class RingBufferOrderBook extends OrderBook {
 		}
 	}
 
-	private int getTargetIdx(BigDecimal price) {
-		int idxStep = price.subtract(lastP).divide(this.step).intValue();
-		return lastIdx + idxStep;
+	private List<Trade> matchForBid(Order bidOrder) {
+		long bidUserId = bidOrder.userId;
+		long bidOrderId = bidOrder.orderId;
+
+		List<Trade> rlt = new ArrayList<>();
+		while (bidOrder.overQty.compareTo(BigDecimal.ZERO) > 0) {
+			// 订单剩余量 大于 0
+			PriceZone priceZone = bestLevel(bidOrder.side);
+			if (Objects.isNull(priceZone)) {
+				// 没有最优的
+				break;
+			}
+			Order peek = priceZone.peek();
+			if (ObjUtil.isNull(peek) || !matchable(bidOrder, peek)) {
+				// 限价价格不匹配
+				break;
+			}
+			// 吃掉流动性
+			long askUserId = peek.orderId;
+			long askOrderId = peek.orderId;
+			BigDecimal exeQty = bidOrder.overQty.compareTo(peek.overQty) > 0
+								? peek.overQty
+								: bidOrder.overQty;
+
+			// 更新流动性
+			peek = priceZone.patch(peek.orderId, exeQty);
+			if (peek.overQty.compareTo(BigDecimal.ZERO) <= 0) {
+				priceZone.cancel(peek.orderId);
+				peek.setStatus(2);
+				matchResultEventHandler.handle(new MatchResultEvent(peek, null));
+			}
+
+			// 更新订单
+			bidOrder.overQty = bidOrder.overQty.subtract(exeQty);
+			bidOrder.filledQty = bidOrder.filledQty.add(exeQty);
+
+			// 生成trade
+			Trade trade = new Trade(bidUserId, askUserId, bidOrderId, askOrderId, peek.price, exeQty,
+									LocalDateTime.now());
+			rlt.add(trade);
+		}
+		if (bidOrder.overQty.compareTo(BigDecimal.ZERO) > 0) {
+			// 部分撮合 提交到订单簿
+			int targetIdx = getTargetIdx(bidOrder.price);
+			PriceZone targetZone = hotZone[targetIdx];
+			targetZone.submit(bidOrder);
+		}
+		return rlt;
 	}
 
 	private int getLeftIdx(int idx) {
@@ -453,7 +470,8 @@ public class RingBufferOrderBook extends OrderBook {
 	}
 
 	private List<String> treePrint(TreeMap<BigDecimal, PriceZone> treeMap) {
-		Iterator<Map.Entry<BigDecimal, PriceZone>> iterator = treeMap.entrySet().iterator();
+		Iterator<Map.Entry<BigDecimal, PriceZone>> iterator = treeMap.entrySet()
+																	 .iterator();
 		List<String> rlt = new ArrayList<>();
 		while (iterator.hasNext()) {
 			Map.Entry<BigDecimal, PriceZone> next = iterator.next();
@@ -531,7 +549,7 @@ public class RingBufferOrderBook extends OrderBook {
 
 		private Integer reBalId;
 
-		private OrderEventHandler orderEventHandler;
+		private MatchResultEventHandler matchResultEventHandler;
 
 	}
 }

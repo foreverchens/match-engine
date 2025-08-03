@@ -1,6 +1,8 @@
 package icu.service.match.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -9,6 +11,8 @@ import java.util.List;
  * @date 2025/08/02 
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class MatchResultEvent {
 	private Order order;
 

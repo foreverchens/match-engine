@@ -76,10 +76,6 @@ public class PriceZone {
 		order.filledQty = order.filledQty.add(filledQty);
 		order.overQty = order.overQty.subtract(filledQty);
 		totalQty = totalQty.subtract(filledQty);
-
-		if (order.overQty.compareTo(BigDecimal.ZERO) <= 0) {
-			this.cancel(orderId);
-		}
 		return order;
 	}
 

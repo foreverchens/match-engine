@@ -2,6 +2,7 @@ package icu.util;
 
 import org.springframework.beans.BeanUtils;
 
+import icu.common.OrderStatus;
 import icu.service.match.model.Order;
 import icu.web.model.OrderResult;
 import icu.web.model.OriginOrder;
@@ -20,6 +21,7 @@ public class ModelUtil {
 		BeanUtils.copyProperties(originOrder, order);
 		order.setOverQty(originOrder.getOrigQty());
 		order.setFilledQty(BigDecimal.ZERO);
+		order.setStatus(OrderStatus.PENDING);
 		return order;
 	}
 
