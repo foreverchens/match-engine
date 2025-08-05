@@ -115,7 +115,7 @@ sequenceDiagram
 
 冷热区数据具有自平衡机制
 
-![ringArr](/Users/yangyouyu_1/Pictures/typora/ringArr.svg)
+![ringArr](./deploy/ringArr.svg)
 
 # 2.详细设计
 
