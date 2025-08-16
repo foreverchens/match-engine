@@ -262,9 +262,8 @@ public final class RingOrderBuffer {
 			int k = (int) (delta / step);
 			// 前 k-1 步：用“该步的目标被挤出索引”的价格创建空档，作为 shiftLeft 的参数
 			for (int i = 1; i < k; i++) {
-				int evictIdx = highIdx;
-				// 价格等于 evictIdx 的空 PriceLevel
-				PriceLevel filler = newEmptyAtIndex(evictIdx);
+				// 将lowP 到 incoming.price之间 的空隙
+				PriceLevel filler = new PriceLevel(lowPrice - step);
 				evicted.add(shiftLeft(filler));
 			}
 			// 第 k 步：把 incoming 放到“被挤出索引”
@@ -277,8 +276,8 @@ public final class RingOrderBuffer {
 			}
 			int k = (int) (delta / step);
 			for (int i = 1; i < k; i++) {
-				int evictIdx = lowIdx;
-				PriceLevel filler = newEmptyAtIndex(evictIdx);
+				// 将incoming.price到lowP之间 的空隙
+				PriceLevel filler = new PriceLevel(highPrice + step);
 				evicted.add(shiftRight(filler));
 			}
 			evicted.add(shiftRight(incoming));
@@ -318,12 +317,6 @@ public final class RingOrderBuffer {
 		lowIdx = (lowIdx - 1) & mask;
 		highIdx = (highIdx - 1) & mask;
 
-		// 将传入的冷区档位放回“被挤出对象原位置”
-		long expect = indexToPrice(evictIdx);
-		if (coldBid.getPrice() != expect) {
-			throw new IllegalArgumentException(
-					"coldBid price mismatch: expect=" + expect + ", actual=" + coldBid.getPrice());
-		}
 		levels[evictIdx] = coldBid;
 
 		// 仅更新窗口价格；不改 lastIdx/lastPrice（成交后另行设置）
@@ -352,11 +345,6 @@ public final class RingOrderBuffer {
 		lowIdx = (lowIdx + 1) & mask;
 		highIdx = (highIdx + 1) & mask;
 
-		long expect = indexToPrice(evictIdx);
-		if (coldAsk.getPrice() != expect) {
-			throw new IllegalArgumentException(
-					"coldAsk price mismatch: expect=" + expect + ", actual=" + coldAsk.getPrice());
-		}
 		levels[evictIdx] = coldAsk;
 
 		lowPrice = indexToPrice(lowIdx);
@@ -393,7 +381,9 @@ public final class RingOrderBuffer {
 		  .append(lastPrice)
 		  .append("}\n");
 
-		int i = lowIdx, shown = 0, limit = 64;
+		int i = lowIdx;
+		int shown = 0;
+		int limit = 64;
 		while (true) {
 			PriceLevel p = levels[i];
 			if (!p.isEmpty()) {

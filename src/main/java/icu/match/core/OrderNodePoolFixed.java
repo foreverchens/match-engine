@@ -90,6 +90,9 @@ public final class OrderNodePoolFixed {
 		if (!node.used) {
 			throw new IllegalStateException("double free: orderId=" + node.orderId);
 		}
+		if (node.prev != null || node.next != null) {
+			throw new IllegalStateException("node already linked: orderId=" + node.orderId);
+		}
 		node.reset();
 		boolean wasPooled = node.pooled;
 		if (wasPooled) {

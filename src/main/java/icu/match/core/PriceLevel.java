@@ -1,6 +1,6 @@
 package icu.match.core;
 
-import icu.common.OrderSide;
+import icu.match.common.OrderSide;
 import lombok.Getter;
 
 /**
@@ -101,8 +101,7 @@ public final class PriceLevel {
 		String side = ask
 					  ? OrderSide.ASK.toString()
 					  : OrderSide.BID.toString();
-		String sb = "PriceLevel{price=" + price + ", side=" + side + ", size=" + queue.getSize() + ", totalQty=" +
-					queue.getTotalQty() + "}\n" + queue.dump();
-		return sb;
+		return "PriceLevel{price=" + price + ", side=" + side + ", size=" + queue.getSize() + ", totalQty=" +
+			   queue.getTotalQty() + "}\n" + queue.dump();
 	}
 }

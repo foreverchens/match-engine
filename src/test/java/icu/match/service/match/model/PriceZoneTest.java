@@ -4,8 +4,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import icu.common.OrderSide;
-import icu.common.OrderType;
+import icu.match.common.OrderSide;
+import icu.match.common.OrderType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;

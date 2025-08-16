@@ -2,7 +2,7 @@ package icu.match.web.repo;
 
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
-import icu.web.model.OriginOrder;
+import icu.match.web.model.OriginOrder;
 
 /**
  * @author 中本君

@@ -77,14 +77,20 @@ public final class RecenterManager {
 			if (moveLeft) {
 				// 进入价位 = 当前 highPrice，方向 ASK
 				PriceLevel incoming = cold.popBestBid();
-				List<PriceLevel> evicted = ring.migrateToInclude(incoming);
-				putBackNonEmpty(evicted);
+				// 当冷区一直没数据 且热区一直偏移时
+				// 此刻新订单提交时即使离市价很近 也会先添加到冷区 然后才迁移到热区
+				if (incoming != null) {
+					List<PriceLevel> evicted = ring.migrateToInclude(incoming);
+					putBackNonEmpty(evicted);
+				}
 			}
 			else {
 				// 进入价位 = 当前 lowPrice，方向 BID
 				PriceLevel incoming = cold.popBestAsk();
-				List<PriceLevel> evicted = ring.migrateToInclude(incoming);
-				putBackNonEmpty(evicted);
+				if (incoming != null) {
+					List<PriceLevel> evicted = ring.migrateToInclude(incoming);
+					putBackNonEmpty(evicted);
+				}
 			}
 			done++;
 		}
@@ -94,7 +100,7 @@ public final class RecenterManager {
 	/**
 	 * 计算当前Bid区所占百分比
 	 */
-	private double currentSkewPercent() {
+	double currentSkewPercent() {
 		final int mask = ring.getLength() - 1;
 		final int forward = (ring.getLastIdx() - ring.getLowIdx()) & mask;
 		return mask == 0

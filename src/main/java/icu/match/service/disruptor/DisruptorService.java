@@ -4,7 +4,7 @@ import com.lmax.disruptor.RingBuffer;
 
 import org.springframework.stereotype.Component;
 
-import icu.service.match.model.Order;
+import icu.match.service.match.model.Order;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;

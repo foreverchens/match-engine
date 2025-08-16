@@ -4,7 +4,7 @@ import org.springframework.boot.CommandLineRunner;
 
 import icu.match.common.OrderSide;
 import icu.match.common.OrderType;
-import icu.service.match.model.Order;
+import icu.match.service.match.model.Order;
 
 import javax.annotation.Resource;
 

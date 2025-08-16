@@ -213,15 +213,11 @@ public class ColdOrderBuffer {
 	/** 清理：把内部已转空的价位（如果外部绕过 cancel/remove 导致）从树里剔除。 */
 	public void vacuum() {
 		asks.entrySet()
-			.removeIf(e -> {
-				return e.getValue()
-						.isEmpty();
-			});
+			.removeIf(e -> e.getValue()
+							.isEmpty());
 		bids.entrySet()
-			.removeIf(e -> {
-				return e.getValue()
-						.isEmpty();
-			});
+			.removeIf(e -> e.getValue()
+							.isEmpty());
 	}
 
 
@@ -235,7 +231,7 @@ public class ColdOrderBuffer {
 	/** 冷区快照（仅列出前若干最优档，避免过长）。 */
 	public String dump(int limitPerSide) {
 		StringBuilder sb = new StringBuilder(256);
-		sb.append("ColdPriceBook{")
+		sb.append("ColdOrderBuffer{")
 		  .append("asks=")
 		  .append(asks.size())
 		  .append(", bids=")

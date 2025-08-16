@@ -3,9 +3,9 @@ package icu.match.util;
 import org.springframework.beans.BeanUtils;
 
 import icu.match.common.OrderStatus;
-import icu.service.match.model.Order;
-import icu.web.model.OrderResult;
-import icu.web.model.OriginOrder;
+import icu.match.service.match.model.Order;
+import icu.match.web.model.OrderResult;
+import icu.match.web.model.OriginOrder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
  * @date 2025/08/02 
  */
 public class ModelUtil {
+
+	private ModelUtil() {}
 
 	public static Order originOrderToOrder(OriginOrder originOrder) {
 		Order order = new Order();
