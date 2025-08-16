@@ -7,6 +7,7 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
@@ -27,6 +28,11 @@ public class Main {
 		SpringApplication.run(Main.class, args);
 		log.info("-------------suc-------------");
 		log.info("api doc :  http://localhost:8080/webjars/swagger-ui/index.html");
+		Flux.interval(Duration.ofSeconds(1))
+			.map(e -> "" + e)
+			.doOnNext(log::info)
+			.subscribe();
+
 	}
 
 
@@ -34,6 +40,5 @@ public class Main {
 	public WebClient webClient() {
 		HttpClient httpClient = HttpClient.create().responseTimeout(Duration.ofSeconds(5));
 		return WebClient.builder().clientConnector(new ReactorClientHttpConnector(httpClient)).build();
-
 	}
 }
