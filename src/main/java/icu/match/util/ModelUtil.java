@@ -23,7 +23,7 @@ public class ModelUtil {
 		BeanUtils.copyProperties(originOrder, order);
 		order.setOverQty(originOrder.getOrigQty());
 		order.setFilledQty(BigDecimal.ZERO);
-		order.setStatus(OrderStatus.PENDING);
+		order.setStatus(OrderStatus.PENDING.val);
 		return order;
 	}
 

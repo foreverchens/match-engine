@@ -4,19 +4,15 @@ package icu.match.common;
  * @author yyy
  * @tg t.me/ychen5325
  */
-public interface OrderType {
+public enum OrderType {
 
-	String LIMIT = "LIMIT";
+	LIMIT, MARKET;
 
-	String MARKET = "MARKET";
+	public boolean isMarket() {
+		return this == MARKET;
+	}
 
-	/**
-	 *  判断是否为市价订单
-	 *
-	 * @param type type
-	 * @return isMarket
-	 */
-	static boolean isMarket(String type) {
-		return MARKET.equalsIgnoreCase(type);
+	public boolean isLimit() {
+		return this == LIMIT;
 	}
 }

@@ -5,37 +5,25 @@ package icu.match.common;
  * @date 2025/08/03 
  */
 
-public interface OrderStatus {
-
+public enum OrderStatus {
 	/**
-	 * 该订单被交易引擎接受。
-	 *  已入库但未提交disruptor队列
+	 * 初始状态
 	 */
-	Integer NEW = 0;
-
+	NEW(0),
 	/**
-	 * 已从disruptor队列消费并提交给了撮合引擎
+	 * 正常情况 入订单簿 部分成交 完成成交
 	 */
-	Integer PENDING = 1;
-
+	PENDING(10), PARTIALLY_FILLED(11), FILLED(12),
 	/**
-	 * 完全成交
+	 * 异常情况 被测单 被拒绝
 	 */
-	Integer FILLED = 2;
+	CANCELED(20), REJECTED(21);
 
-	/**
-	 * 部分成交
-	 */
-	Integer PARTIALLY_FILLED = 3;
+	public final int val;
 
-	/**
-	 * 撤销的
-	 */
-	Integer CANCELED = 4;
+	OrderStatus(int val) {
+		this.val = val;
+	}
 
-	/**
-	 * 拒绝的
-	 */
-	Integer REJECTED = 5;
 
 }

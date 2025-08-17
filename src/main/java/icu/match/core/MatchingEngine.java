@@ -1,5 +1,7 @@
 package icu.match.core;
 
+import icu.match.core.interfaces.MatchSink;
+
 import java.util.Objects;
 
 /**

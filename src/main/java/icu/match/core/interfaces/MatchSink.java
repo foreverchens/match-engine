@@ -1,12 +1,13 @@
-package icu.match.core;/**
+package icu.match.core.interfaces;/**
  *
  * @author 中本君
  * @date 2025/8/16
  */
 
 
+import icu.match.core.OrderNode;
+import icu.match.core.model.MatchedTrade;
 import icu.match.service.match.model.Order;
-import icu.match.service.match.model.Trade;
 
 /**
  * @author 中本君
@@ -14,7 +15,7 @@ import icu.match.service.match.model.Trade;
  */
 public interface MatchSink {
 
-	void onTrade(Trade t);
+	void onTrade(MatchedTrade t);
 
 	void onOrderAccepted(Order o);
 

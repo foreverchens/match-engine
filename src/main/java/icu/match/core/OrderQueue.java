@@ -83,6 +83,8 @@ public class OrderQueue {
 	 * 将节点挂到链表尾部。
 	 */
 	private void linkAtTail(OrderNode n) {
+		n.prev = null;
+		n.next = null;
 		if (tail == null) {
 			head = tail = n;
 		}

@@ -1,6 +1,7 @@
 package icu.match.service.match.model;
 
 import icu.match.common.OrderSide;
+import icu.match.common.OrderType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,7 +37,7 @@ public class Order {
 	 * OrderType
 	 * LIMIT ｜ MARKET
 	 */
-	String type;
+	OrderType type;
 
 	BigDecimal price;
 
@@ -60,7 +61,7 @@ public class Order {
 	 */
 	Order next, prev;
 
-	public Order(String symbol, long userId, long orderId, OrderSide side, String type, BigDecimal price,
+	public Order(String symbol, long userId, long orderId, OrderSide side, OrderType type, BigDecimal price,
 				 BigDecimal origQty) {
 		this.symbol = symbol;
 		this.userId = userId;
