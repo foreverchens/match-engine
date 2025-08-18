@@ -104,4 +104,21 @@ public final class PriceLevel {
 		return "PriceLevel{price=" + price + ", side=" + side + ", size=" + queue.getSize() + ", totalQty=" +
 			   queue.getTotalQty() + "}\n" + queue.dump();
 	}
+
+	/**
+	 * 返回快照：队列中订单数量用 "->" 拼接
+	 * 例如:  "1->2->4"
+	 */
+	public String snapshot() {
+		StringBuilder sb = new StringBuilder();
+		OrderNode current = queue.peek();
+		while (current != null) {
+			sb.append(current.qty);
+			current = current.next;
+			if (current != null) {
+				sb.append("->");
+			}
+		}
+		return sb.toString();
+	}
 }

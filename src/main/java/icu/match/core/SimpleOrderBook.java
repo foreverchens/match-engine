@@ -10,8 +10,10 @@ import icu.match.core.interfaces.BaseOrderBook;
 import icu.match.core.interfaces.MatchSink;
 import icu.match.core.model.BestLiqView;
 import icu.match.core.model.MatchedTrade;
+import icu.match.core.model.OrderInfo;
 import icu.match.core.model.StepMatchResult;
 import icu.match.service.match.model.Order;
+import lombok.Getter;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import java.util.Optional;
  */
 public class SimpleOrderBook implements BaseOrderBook {
 
+	@Getter
 	private final String symbol;
 
 	private final RingOrderBuffer ring;
@@ -116,7 +119,26 @@ public class SimpleOrderBook implements BaseOrderBook {
 	}
 
 	@Override
-	public OrderStatus submit(Order order) {
-		return null;
+	public OrderStatus submit(OrderInfo orderInfo) {
+		long price = orderInfo.getPrice();
+		OrderNode node = pool.alloc(orderInfo.getOrderId(), orderInfo.getUserId(), orderInfo.getSide()
+																							.isAsk(),
+									orderInfo.getQty());
+		if (ring.isWindow(price)) {
+			ring.submit(price, node);
+		}
+		else {
+			cold.submit(price, node);
+		}
+		return OrderStatus.PENDING;
+	}
+
+
+	public String dump() {
+		return ring.dump();
+	}
+
+	public String snapshot() {
+		return ring.snapshot();
 	}
 }

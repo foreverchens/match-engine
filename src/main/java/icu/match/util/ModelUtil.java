@@ -2,7 +2,9 @@ package icu.match.util;
 
 import org.springframework.beans.BeanUtils;
 
-import icu.match.common.OrderStatus;
+import icu.match.common.OrderEventType;
+import icu.match.common.OrderType;
+import icu.match.core.model.OrderInfo;
 import icu.match.service.match.model.Order;
 import icu.match.web.model.OrderResult;
 import icu.match.web.model.OriginOrder;
@@ -18,13 +20,17 @@ public class ModelUtil {
 
 	private ModelUtil() {}
 
-	public static Order originOrderToOrder(OriginOrder originOrder) {
-		Order order = new Order();
-		BeanUtils.copyProperties(originOrder, order);
-		order.setOverQty(originOrder.getOrigQty());
-		order.setFilledQty(BigDecimal.ZERO);
-		order.setStatus(OrderStatus.PENDING.val);
-		return order;
+	public static OrderInfo originOrderToOrder(OriginOrder originOrder) {
+		OrderInfo.OrderInfoBuilder builder = OrderInfo.builder();
+		builder.orderEventType(OrderEventType.NEW_ORDER)
+			   .userId(originOrder.getUserId())
+			   .orderId(originOrder.getOrderId())
+			   .symbol(originOrder.getSymbol())
+			   .side(originOrder.getSide())
+			   .orderType(OrderType.valueOf(originOrder.getType()))
+			   .price(originOrder.getPrice())
+			   .qty(originOrder.getOrigQty());
+		return builder.build();
 	}
 
 	public static OrderResult orderToOrderResult(Order order) {

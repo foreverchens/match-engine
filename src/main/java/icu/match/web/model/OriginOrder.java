@@ -9,8 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 /**
  * @author 中本君
  * @date 2025/08/02 
@@ -33,8 +31,8 @@ public class OriginOrder {
 
 	private String type;
 
-	private BigDecimal origQty;
+	private long origQty;
 
-	private BigDecimal price;
+	private long price;
 
 }

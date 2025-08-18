@@ -7,6 +7,7 @@ package icu.match.core.interfaces;/**
 import icu.match.common.OrderSide;
 import icu.match.common.OrderStatus;
 import icu.match.core.model.BestLiqView;
+import icu.match.core.model.OrderInfo;
 import icu.match.core.model.StepMatchResult;
 import icu.match.service.match.model.Order;
 
@@ -26,5 +27,9 @@ public interface BaseOrderBook {
 
 	StepMatchResult matchHead(long takerQty, Order order);
 
-	OrderStatus submit(Order order);
+	OrderStatus submit(OrderInfo orderInfo);
+
+	String dump();
+
+	String snapshot();
 }

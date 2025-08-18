@@ -4,7 +4,11 @@ import com.lmax.disruptor.EventHandler;
 
 import org.springframework.stereotype.Component;
 
+import icu.match.common.CallResult;
+import icu.match.common.OrderStatus;
 import icu.match.core.MatchingEngine;
+import icu.match.service.global.MonoSinkManage;
+import icu.match.web.model.OrderResult;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
@@ -22,7 +26,11 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 
 	@Override
 	public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
-		log.info("订单处理:{}", event.getOrder());
-		// matchEngine.submitLimit(event.getOrder());
+		log.info("订单处理:{}", event.getOrderInfo());
+		CallResult<OrderStatus> rlt = matchEngine.submit(event.getOrderInfo());
+		log.info(rlt.toString());
+		MonoSinkManage.getSink(event.getOrderInfo()
+									.getOrderId())
+					  .success(new OrderResult());
 	}
 }

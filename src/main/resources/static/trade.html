@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+
+<link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>BTC Order Book Depth</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #eee;
+            padding: 120px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 80px;
+            font-size: 180px; /* 标题更大 */
+        }
+
+        .orderbook {
+            display: flex;
+            justify-content: center;
+            gap: 120px; /* 两边表格间距更大 */
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 1800px;
+            background: #222;
+            color: #eee;
+            font-size: 32px;
+        }
+
+        th, td {
+            padding: 64px;
+            text-align: center; /* 👈 居中对齐 */
+        }
+
+        th {
+            background: #333;
+            font-size: 100px;
+        }
+
+        td {
+            font-size: 60px; /* 👈 数据更大，看着醒目 */
+            font-weight: bold;
+        }
+
+        tr.ask {
+            background-color: rgba(255, 0, 0, 0.25);
+        }
+
+        tr.bid {
+            background-color: rgba(0, 255, 0, 0.25);
+        }
+
+
+        /* 下单表单 */
+        .order-form {
+            width: 2000px;
+            margin: 0 auto;
+            padding: 80px;
+            background: #1c1c1c;
+            border-radius: 40px;
+            font-size: 70px;
+        }
+
+        .order-form label {
+            display: block;
+            margin-top: 50px;
+            margin-bottom: 40px;
+        }
+
+        .order-form input {
+            width: 100%;
+            padding: 24px;
+            font-size: 50px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background: #222;
+            color: #fff;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 90px;
+        }
+
+        .buy-btn, .sell-btn {
+            flex: 1;
+            padding: 95px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 6px;
+            font-size: 90px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .buy-btn {
+            background: #16a34a;
+        }
+
+        .sell-btn {
+            background: #dc2626;
+        }
+
+        .buy-btn:hover {
+            background: #22c55e;
+        }
+
+        .sell-btn:hover {
+            background: #ef4444;
+        }
+
+
+    </style>
+</head>
+<body>
+<h2>BTC Order Book Depth (Live)</h2>
+<div class="orderbook">
+    <div>
+        <h2 style="text-align:center;">Bids (买盘)</h2>
+        <table id="bidsTable">
+            <thead>
+            <tr>
+                <th>Price</th>
+                <th>Qty</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <div>
+        <h2 style="text-align:center;">Asks (卖盘)</h2>
+        <table id="asksTable">
+            <thead>
+            <tr>
+                <h3>
+                    <th>Price</th>
+                    <th>Qty</th>
+                </h3>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="order-form">
+    <div class="order-inputs">
+        <label>价格</label>
+        <input id="price" placeholder="输入价格" type="number"/>
+        <label>数量</label>
+        <input id="qty" placeholder="输入数量" type="number"/>
+    </div>
+
+    <div class="order-buttons">
+        <button class="buy-btn" onclick="placeOrder('BID')">买入</button>
+        <button class="sell-btn" onclick="placeOrder('ASK')">卖出</button>
+    </div>
+</div>
+
+<script>
+    const ws = new WebSocket("ws://localhost:8080/ws/depth");
+
+    ws.onmessage = e => {
+        const arr = JSON.parse(e.data);
+        const bids = arr[0];
+        const asks = arr[1];
+
+        renderTable("bidsTable", bids, "bid", false); // 买盘降序
+        renderTable("asksTable", asks, "ask", true);  // 卖盘升序
+    };
+
+    function renderTable(tableId, obj, rowClass, asc) {
+        const tbody = document.getElementById(tableId).querySelector("tbody");
+        tbody.innerHTML = "";
+
+        // 转换成 [price, qty] 数组
+        let rows = Object.entries(obj).map(([price, qty]) => [parseFloat(price), qty]);
+
+        // 排序
+        rows.sort((a, b) => asc ? a[0] - b[0] : b[0] - a[0]);
+
+        rows.forEach(([price, qty]) => {
+            const tr = document.createElement("tr");
+            tr.className = rowClass;
+            tr.innerHTML = `<td>${price}</td><td>${qty}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function placeOrder(side) {
+        const price = document.getElementById("price").value;
+        const qty = document.getElementById("qty").value;
+
+        if (!price || !qty) {
+            alert("请输入价格和数量");
+            return;
+        }
+        try {
+            const res = await fetch("http://localhost:8080/api/order", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    userId: 1,
+                    orderId: Math.round(Math.random() * 1000),
+                    symbol: "BTCUSDT",
+                    type: "LIMIT",
+                    side: side,   // "buy" 或 "sell"
+                    price: price,
+                    origQty: qty
+                })
+            });
+
+            if (res.ok) {
+                alert(`下单成功: ${side.toUpperCase()} ${qty} @ ${price}`);
+            } else {
+                alert("下单失败");
+            }
+        } catch (err) {
+            alert("请求错误: " + err.message);
+        }
+    }
+</script>
+</body>
+</html>

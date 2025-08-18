@@ -2,14 +2,116 @@
 
 ## 概述
 
-本文档描述了一套基于 **环形数组（Ring Buffer）** 与 **冷区红黑树（TreeMap）**
-的订单簿数据结构设计与实现，面向高吞吐、低延迟的撮合场景（如数字货币现货/合约）。  
-设计将价格空间划分为两类存储：
+📖 概述 (Overview)
 
-- **热区（Hot Zone）**：使用固定长度（2 的幂）的环形数组，承载活跃价位，强调缓存局部性与 O(1) 寻址。
-- **冷区（Cold Zone）**：使用红黑树（`TreeMap`）承载远离当前价格的低频价位，强调有序性与 O(log N) 操作。
+本项目实现了一套高性能 撮合引擎 (Matching Engine) 与 订单簿数据结构 (OrderBook Data Structure)，专为 数字货币交易所 (
+Crypto Exchange)、现货/合约撮合 (Spot & Futures Matching) 以及 高频交易系统 (High-Frequency Trading System) 而设计。
 
-通过 **冷热区动态迁移** 与 **重心再平衡（Recenter）**，系统在保障撮合性能的同时兼顾内存利用率与稳定性。
+核心数据结构基于 环形数组 (Ring Buffer) 与 红黑树 (TreeMap) 的混合实现：
+
+热区 (Hot Zone)：使用固定长度（2 的幂）的 环形数组 (Ring Buffer) 存储活跃价位，提供 O(1) 查询与更新，具备优异的 CPU 缓存局部性，满足
+低延迟撮合 (Low Latency Matching) 需求。
+
+冷区 (Cold Zone)：使用 红黑树 (TreeMap) 存储远离当前价格的低频价位，保证 有序性 与 O(log N) 操作复杂度，适合低频但规模较大的订单存储。
+
+冷热区动态迁移 (Dynamic Migration) 与 价格重心再平衡 (Recenter)：在不同市场波动下，自动在 性能 与 内存利用率 之间取得平衡。
+
+关键词 (Keywords)
+
+撮合引擎 Matching Engine、订单簿 OrderBook、订单队列 OrderQueue、限价单 Limit Order、市价单 Market Order、Ring
+Buffer、TreeMap、红黑树、数据结构 Data Structure、高吞吐 High Throughput、低延迟 Low Latency、数字货币交易所 Crypto
+Exchange、撮合算法 Matching Algorithm。
+
+该项目可作为 交易所核心撮合模块 (Exchange Matching Core) 的参考实现，适用于 研究、教学、性能优化 与 生产级系统原型开发。
+
+```mermaid
+graph TD
+  %% =============================
+  %% OrderBook Topology
+  %% =============================
+  OB[OrderBook\n撮合引擎核心结构]
+  HZ[Hot Zone\nRing Buffer]
+  CZ[Cold Zone\nTreeMap]
+  RECENTER[Recenter\n重心再平衡]
+  MIGRATE[Dynamic Migration\n冷热区动态迁移]
+
+  OB --> HZ
+  OB --> CZ
+  OB -.触发.-> RECENTER
+  RECENTER -.驱动.-> MIGRATE
+  MIGRATE -.在两区间搬移.-> HZ
+  MIGRATE -.在两区间搬移.-> CZ
+
+  %% =============================
+  %% Hot Zone: Ring Buffer Layout
+  %% =============================
+  subgraph HOT[Hot Zone: Ring Buffer  寻址 & 高缓存局部性]
+    direction LR
+    RB0[slot 0]
+    RB1[slot 1]
+    RB2[...]
+    RBn[slot 2^k-1]
+
+    RB0 -->|priceIndex映射| PL0[PriceLevel\n活跃价位]
+    RB1 -->|priceIndex映射| PL1[PriceLevel]
+    RB2 -->|priceIndex映射| PL2[PriceLevel]
+    RBn -->|priceIndex映射| PLn[PriceLevel]
+  end
+
+  HZ --> HOT
+
+  %% =============================
+  %% Cold Zone: TreeMap Layout
+  %% =============================
+  subgraph COLD[Cold Zone: TreeMap ]
+    direction TB
+    TMROOT((root))
+    TML[... 左子树 ...]
+    TMR[... 右子树 ...]
+    TMROOT -->|price key| CPL[PriceLevel\n远离当前价格]
+    TMROOT --> TML
+    TMROOT --> TMR
+  end
+
+  CZ --> COLD
+
+  %% =============================
+  %% PriceLevel & OrderQueue
+  %% =============================
+  classDef level fill:#e8f5e9,stroke:#2e7d32,stroke-width:1px,color:#1b5e20;
+  classDef queue fill:#e3f2fd,stroke:#1565c0,stroke-width:1px,color:#0d47a1;
+
+  class PL0,PL1,PL2,PLn,CPL level
+
+  subgraph LEVEL[PriceLevel 内部：FIFO OrderQueue（按时间先后）]
+    direction LR
+    QH[Head]:::queue --> Q1[OrderNode]:::queue --> Q2[OrderNode]:::queue --> Q3[OrderNode]:::queue --> QT[Tail]:::queue
+    note1{{"dump() / snapshot:\n1->2->4 形式拼接数量"}}
+    Q2 --- note1
+  end
+
+  PL0 --> LEVEL
+  PL1 --> LEVEL
+  PL2 --> LEVEL
+  PLn --> LEVEL
+  CPL --> LEVEL
+
+  %% =============================
+  %% Memory / Pooling
+  %% =============================
+  POOL[OrderNodePool \n对象池，避免频繁GC]:::queue
+  POOL -.供给/回收.-> Q1
+  POOL -.供给/回收.-> Q2
+  POOL -.供给/回收.-> Q3
+
+  %% =============================
+  %% Legend
+  %% =============================
+  classDef meta fill:#fff8e1,stroke:#ff6f00,color:#e65100,stroke-width:1px;
+  LEGEND[Legend\n• Hot Zone: 2 Recenter: 根据市场重心调整热区窗口\n• Migration: 价格档在冷热区间迁移]:::meta
+  OB --- LEGEND
+
+```
 
 # 1.基本设计
 

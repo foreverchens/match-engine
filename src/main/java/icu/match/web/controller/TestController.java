@@ -1,18 +1,21 @@
 package icu.match.web.controller;
 
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import icu.match.common.CallResult;
+import icu.match.core.MatchingEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.Resource;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -36,6 +39,21 @@ public class TestController {
 		});
 	}
 
+	@Resource
+	private MatchingEngine matchingEngine;
+
+	@GetMapping("/dump")
+	public Mono<String> dump() {
+		return Mono.just(matchingEngine.dump());
+	}
+
+	@GetMapping("/snap")
+	public Mono<String> snap() {
+		return Mono.just(matchingEngine.snapshot());
+	}
+
+
+
 	@Data
 	@Schema(description = "创建用户请求参数")
 	public static class User {
@@ -49,4 +67,5 @@ public class TestController {
 		private Integer age;
 
 	}
+
 }

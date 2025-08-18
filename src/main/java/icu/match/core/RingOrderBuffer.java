@@ -1,9 +1,14 @@
 package icu.match.core;
 
+import com.alibaba.fastjson2.JSON;
+
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 热区环形价格缓冲（单线程）。
@@ -285,9 +290,31 @@ public final class RingOrderBuffer {
 		return evicted;
 	}
 
-	/** 基于给定数组索引创建一个“空的 PriceLevel”（价格正确但队列为空）。 */
-	private PriceLevel newEmptyAtIndex(int idx) {
-		return new PriceLevel(indexToPrice(idx));
+
+	public boolean isWindow(long price) {
+		return lowPrice <= price && price <= highPrice;
+	}
+
+	public String snapshot() {
+
+		Map<String, String> bids = new HashMap<String, String>();
+		Map<String, String> asks = new HashMap<String, String>();
+
+		for (int i = lowIdx; i < highIdx; i = getRightIdx(i)) {
+			PriceLevel lvl = levels[i];
+			if (lvl.isEmpty()) {
+				continue;
+			}
+			long price = lvl.getPrice();
+			String snapshot = lvl.snapshot();
+			if (lvl.isAsk()) {
+				asks.put(String.valueOf(price), snapshot);
+			}
+			else {
+				bids.put(String.valueOf(price), snapshot);
+			}
+		}
+		return JSON.toJSONString(Arrays.asList(bids, asks));
 	}
 
 
@@ -356,6 +383,14 @@ public final class RingOrderBuffer {
 	/** index → price（固定映射）。 */
 	private long indexToPrice(int idx) {
 		return levels[idx].getPrice();
+	}
+
+	private int getRightIdx(int idx) {
+		return (idx + 1) & mask;
+	}
+
+	private int getLeftIdx(int idx) {
+		return (idx - 1) & mask;
 	}
 
 	public String dump() {
@@ -428,4 +463,6 @@ public final class RingOrderBuffer {
 			i = (i + 1) & mask;
 		}
 	}
+
+
 }
