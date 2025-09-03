@@ -206,29 +206,68 @@ sequenceDiagram
 
 ```
 
-## 4.订单簿数据结构
+## 4.数据备份与恢复
 
-订单簿数据具有以下特点
+数据备份：定期快照+WAL预写日志
+基于单读(快照线程)单写(撮合线程)模型下的快照实现方案
+要求
 
-订单数量和访问频率大致以当前价格为中心呈正态分布，且靠近市价的订单簿价格具有连续性
+1. 快照线程快照时 不阻塞撮合线程
+2. 快照数据具备点时强一致性
+3.
 
-顾可将数据分为靠近市价的热区和远离市价的冷区
+恢复时 读取最新快照 然后基于最新快照开始时间t0 重放t0时间后的WAL日志
+详情见
+https://ychen5325.notion.site/26316248953d80ffb884edb31a91bc27?source=copy_link
 
-冷区用两个红黑树
+读写并行时序图
 
-热区用环形数组+双向链表+哈希存储
+```mermaid
+sequenceDiagram
+    autonumber
+    participant W as 写线程(唯一)
+    participant C as 控制器(SnapCtl)
+    participant S as 快照线程
+    participant O as 对象(Entry)
+    participant P as 影子池(ShadowPool)
 
-环形数组每个元素以价格为索引 价格最小步长为间距 并指向一个双向链表
+    Note over C: 触发快照 → 进入 Prepare（尚未Start）
+    C->>C: prepare=true
+    W->>W: （场景A）t0前已开始写(旧写)：activeWrite=true
+    W->>O: 进入写临界区（旧写）：不放影子
+    W->>O: stamp变奇 → 修改字段 → stamp变偶
+    W->>W: 写结束(旧写完毕)：activeWrite=false
 
-每个双向链表存储当前价格下的所有订单
+    Note over C: 旧写结束后立刻Start
+    C->>C: snapEpoch++；snapshotInProgress=true（t0）
+    S->>S: 开始扫描（t0开始）
 
-只需维护头节点用于get 尾节点用于插入
+    Note over W: （场景B）t0之后的新写
+    W->>W: 进入写临界区：activeWrite=true（新写）
+    alt snapshotInProgress==true 或 prepare==true
+      W->>P: putIfAbsent 旧像到影子池（写前状态）
+    end
+    W->>O: stamp变奇 → 修改字段 → stamp变偶
+    W->>O: lastMutEpoch = snapEpoch
+    W->>W: 写结束：activeWrite=false
 
-其他操作通过orderId->Node 的hash来进行
+    rect rgb(245,245,245)
+    Note over S: 快照线程扫描每个对象
+    S->>P: 先查影子
+    alt 影子存在(写过)
+      P-->>S: 提供写前旧像
+      S->>S: 输出旧像
+    else 无影子(未在t0后写)
+      S->>O: seqlock稳定读取(双读stamp)
+      S->>P: 二次查影子（竞争窗口兜底）
+      S->>O: 校验 lastMutEpoch < snapEpoch ? 采纳当前 : 等影子/重试
+    end
+    end
 
-冷热区数据具有自平衡机制
-
-![ringArr](./deploy/ringArr.svg)
+    S->>C: 扫描完成 → snapshotInProgress=false
+    C->>P: 清空影子池；prepare=false
+    Note over S: 本轮快照完成（点时一致于t0）
+```
 
 # 2.详细设计
 
