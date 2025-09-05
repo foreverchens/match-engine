@@ -7,11 +7,8 @@ package icu.match.core.interfaces;/**
 import icu.match.common.OrderSide;
 import icu.match.common.OrderStatus;
 import icu.match.core.model.BestLiqView;
+import icu.match.core.model.MatchTradeRlt;
 import icu.match.core.model.OrderInfo;
-import icu.match.core.model.StepMatchResult;
-import icu.match.service.match.model.Order;
-
-import java.util.Optional;
 
 /**
  * @author 中本君
@@ -21,15 +18,28 @@ public interface BaseOrderBook {
 	/**
 	 * 获取对手盘最优一档流动性（price/totalQty/headQty）
 	 */
-	Optional<BestLiqView> bestLiq(OrderSide takerSide);
+	BestLiqView bestLiq(OrderSide takerSide);
 
-	Optional<BestLiqView> bestLiq(OrderSide takerSide, long limitPrice);
+	BestLiqView bestLiq(OrderSide takerSide, long limitPrice);
 
-	StepMatchResult matchHead(long takerQty, Order order);
+	/**
+	 * 两个最小原子撮合函数 仅与最高优先级的head订单进行一次撮合
+	 */
+	MatchTradeRlt matchHead(OrderInfo order);
+
+	/**
+	 * 判断限价单价格能否立即撮合
+	 * @param takerSide 限价单方向
+	 * @param limitPrice 限价单价格
+	 * @return
+	 */
+	boolean canMatchImmediately(OrderSide takerSide, long limitPrice);
 
 	OrderStatus submit(OrderInfo orderInfo);
 
 	String dump();
 
 	String snapshot();
+
+	void cancel(OrderInfo orderInfo);
 }

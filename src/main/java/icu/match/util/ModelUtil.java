@@ -2,7 +2,6 @@ package icu.match.util;
 
 import org.springframework.beans.BeanUtils;
 
-import icu.match.common.OrderEventType;
 import icu.match.common.OrderType;
 import icu.match.core.model.OrderInfo;
 import icu.match.service.match.model.Order;
@@ -22,8 +21,7 @@ public class ModelUtil {
 
 	public static OrderInfo originOrderToOrder(OriginOrder originOrder) {
 		OrderInfo.OrderInfoBuilder builder = OrderInfo.builder();
-		builder.orderEventType(OrderEventType.NEW_ORDER)
-			   .userId(originOrder.getUserId())
+		builder.userId(originOrder.getUserId())
 			   .orderId(originOrder.getOrderId())
 			   .symbol(originOrder.getSymbol())
 			   .side(originOrder.getSide())

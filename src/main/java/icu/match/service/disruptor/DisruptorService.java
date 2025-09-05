@@ -4,6 +4,7 @@ import com.lmax.disruptor.RingBuffer;
 
 import org.springframework.stereotype.Component;
 
+import icu.match.common.OrderEventType;
 import icu.match.core.model.OrderInfo;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,9 +22,14 @@ public class DisruptorService {
 	private RingBuffer<OrderEvent> ringBuffer;
 
 	public void publish(OrderInfo order) {
+		this.publish(OrderEventType.NEW_ORDER, order);
+	}
+
+	public void publish(OrderEventType orderEventType, OrderInfo order) {
 		log.info("处理订单:{}", order);
 		long seq = ringBuffer.next();
 		OrderEvent event = ringBuffer.get(seq);
+		event.setOrderEventType(orderEventType);
 		event.setOrderInfo(order);
 		ringBuffer.publish(seq);
 	}

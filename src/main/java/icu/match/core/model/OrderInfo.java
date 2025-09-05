@@ -6,6 +6,7 @@ package icu.match.core.model;/**
 
 import icu.match.common.OrderEventType;
 import icu.match.common.OrderSide;
+import icu.match.common.OrderTif;
 import icu.match.common.OrderType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,6 +38,8 @@ public class OrderInfo {
 	private OrderSide side;
 
 	private OrderType orderType;
+
+	private OrderTif tif;
 
 	private long price;
 

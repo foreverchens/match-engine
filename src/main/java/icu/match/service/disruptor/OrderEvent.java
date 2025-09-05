@@ -1,5 +1,6 @@
 package icu.match.service.disruptor;
 
+import icu.match.common.OrderEventType;
 import icu.match.core.model.OrderInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderEvent {
+
+	private OrderEventType orderEventType;
 
 	private OrderInfo orderInfo;
 

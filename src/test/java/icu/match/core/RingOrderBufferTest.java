@@ -2,6 +2,8 @@ package icu.match.core;
 
 import org.junit.jupiter.api.Test;
 
+import icu.match.common.OrderSide;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,7 +29,7 @@ class RingOrderBufferTest {
 		OrderNode bid = pool.alloc(301, 1, false, 10);
 		ring.submit(bidPrice, bid);
 
-		PriceLevel bestBid = ring.getBidBestLevel();
+		PriceLevel bestBid = ring.getBestLevel(OrderSide.ASK);
 		assertNotNull(bestBid);
 		assertEquals(bidPrice, bestBid.getPrice());
 		assertFalse(bestBid.isAsk());
@@ -43,7 +45,7 @@ class RingOrderBufferTest {
 		OrderNode ask = pool.alloc(302, 2, true, 5);
 		ring.submit(askPrice, ask);
 
-		PriceLevel bestAsk = ring.getAskBestLevel();
+		PriceLevel bestAsk = ring.getBestLevel(OrderSide.BID);
 		assertNotNull(bestAsk);
 		assertEquals(askPrice, bestAsk.getPrice());
 		assertTrue(bestAsk.isAsk());

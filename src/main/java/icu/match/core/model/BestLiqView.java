@@ -21,4 +21,10 @@ public class BestLiqView {
 	long totalQty;
 
 	long headQty;
+
+	public void clear() {
+		price = 0;
+		totalQty = 0;
+		headQty = 0;
+	}
 }

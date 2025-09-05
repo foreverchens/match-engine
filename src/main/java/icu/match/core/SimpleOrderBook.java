@@ -7,16 +7,12 @@ package icu.match.core;/**
 import icu.match.common.OrderSide;
 import icu.match.common.OrderStatus;
 import icu.match.core.interfaces.BaseOrderBook;
-import icu.match.core.interfaces.MatchSink;
 import icu.match.core.model.BestLiqView;
-import icu.match.core.model.MatchedTrade;
+import icu.match.core.model.MatchTradeRlt;
 import icu.match.core.model.OrderInfo;
-import icu.match.core.model.StepMatchResult;
-import icu.match.service.match.model.Order;
 import lombok.Getter;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author 中本君
@@ -35,87 +31,91 @@ public class SimpleOrderBook implements BaseOrderBook {
 
 	private final OrderNodePoolFixed pool;
 
-	private final MatchSink matchSink;
 
-	public SimpleOrderBook(RingOrderBuffer ring, ColdOrderBuffer cold, MatchSink matchSink) {
+	/**
+	 * 单对象复用
+	 */
+	private final BestLiqView bestLiqView = new BestLiqView();
+
+	// todo 单对象复用 后续修改为disruptor
+	private final MatchTradeRlt matchTradeRlt = new MatchTradeRlt();
+
+	public SimpleOrderBook(RingOrderBuffer ring, ColdOrderBuffer cold) {
 		this.symbol = ring.getSymbol();
 		this.ring = Objects.requireNonNull(ring, "ring must not be null");
 		this.cold = Objects.requireNonNull(cold, "cold must not be null");
 		this.recenter = new RecenterManager(ring, cold);
 		this.pool = new OrderNodePoolFixed(64);
-		this.matchSink = matchSink;
 	}
 
 	@Override
-	public Optional<BestLiqView> bestLiq(OrderSide takerSide) {
-		PriceLevel liq;
-		if (takerSide.isAsk()) {
-			liq = ring.getBidBestLevel();
-
+	public BestLiqView bestLiq(OrderSide takerSide) {
+		bestLiqView.clear();
+		PriceLevel liq = ring.getBestLevel(takerSide);
+		if (liq == null) {
+			return bestLiqView;
 		}
-		else {
-			liq = ring.getAskBestLevel();
-		}
-		assert liq != null;
-		return Optional.of(new BestLiqView(liq.getPrice(), liq.totalQty(), liq.getFirst().qty));
+		bestLiqView.setPrice(liq.getPrice());
+		bestLiqView.setTotalQty(liq.totalQty());
+		bestLiqView.setHeadQty(liq.getFirst().qty);
+		return bestLiqView;
 	}
 
 	@Override
-	public Optional<BestLiqView> bestLiq(OrderSide takerSide, long limitPrice) {
+	public BestLiqView bestLiq(OrderSide takerSide, long limitPrice) {
 		boolean flag;
 		PriceLevel liq;
-		BestLiqView bestLiqView = new BestLiqView();
+		bestLiqView.clear();
 		do {
-			if (takerSide.isAsk()) {
-				liq = ring.getBidBestLevel();
+			liq = ring.getBestLevel(takerSide);
+			if (liq == null) {
+				return bestLiqView;
 			}
-			else {
-				liq = ring.getAskBestLevel();
-			}
-			assert liq != null;
 			if (bestLiqView.getPrice() == 0) {
 				bestLiqView.setPrice(liq.getPrice());
 				bestLiqView.setHeadQty(liq.getFirst().qty);
 			}
 			bestLiqView.setTotalQty(bestLiqView.getTotalQty() + liq.totalQty());
 			flag = takerSide.isAsk()
-				   ? bestLiqView.getPrice() > limitPrice
-				   : bestLiqView.getPrice() < limitPrice;
+				   ? liq.getPrice() > limitPrice
+				   : liq.getPrice() < limitPrice;
 		}
 		while (flag);
-		return Optional.of(bestLiqView);
+		return bestLiqView;
 	}
 
 	@Override
-	public StepMatchResult matchHead(long takerQty, Order takerOrder) {
-		// 前置条件极简保护（生产代码可改为抛异常或断言）
-		if (takerQty <= 0 || takerOrder == null) {
-			throw new IllegalArgumentException("takerQty must greater than 0");
+	public MatchTradeRlt matchHead(OrderInfo takerOrder) {
+		if (takerOrder == null) {
+			throw new IllegalArgumentException("takerOrder must not be null");
 		}
 		OrderSide side = takerOrder.getSide();
-
-		PriceLevel bestPriceLevel = side.isAsk()
-									? ring.getBidBestLevel()
-
-									: ring.getAskBestLevel();
+		PriceLevel bestPriceLevel = ring.getBestLevel(side);
 		if (bestPriceLevel == null) {
-			throw new IllegalArgumentException("bestPriceLevel must greater than 0");
+			throw new IllegalArgumentException("bestPriceLevel must not be null");
 		}
 		OrderNode makerOrder = bestPriceLevel.getFirst();
 
-		// 本步撮合量：两者最小
-		long traded = Math.min(takerQty, makerOrder.qty);
-		makerOrder.qty -= traded;
-		if (makerOrder.qty <= 0) {
+		// 计算可撮合数量 两者取小
+		long matchQty = Math.min(takerOrder.getQty(), makerOrder.qty);
+		if (makerOrder.qty == matchQty) {
 			// makerOrder 完全成交 takerOrder部分成交
-
-
-		}
-		else {
+			// 将makerOrder从订单簿移除
+			bestPriceLevel.remove(makerOrder.orderId);
+		} else {
 			// makerOrder 部分成交 takerOrder完全成交
+			// 更新 makerOrder qty
+			bestPriceLevel.patchQty(makerOrder.orderId, makerOrder.qty - matchQty);
 		}
-		return new StepMatchResult(false, takerOrder.getPrice()
-													.longValue(), takerQty, new MatchedTrade());
+		return matchTradeRlt.fill(takerOrder.getUserId(), makerOrder.userId, takerOrder.getOrderId(),
+								  makerOrder.orderId, bestPriceLevel.getPrice(), matchQty, System.nanoTime());
+	}
+
+	@Override
+	public boolean canMatchImmediately(OrderSide takerSide, long limitPrice) {
+		return takerSide.isAsk()
+			   ? limitPrice <= ring.bestBidPrice()
+			   : limitPrice >= ring.bestAskPrice();
 	}
 
 	@Override
@@ -126,13 +126,23 @@ public class SimpleOrderBook implements BaseOrderBook {
 									orderInfo.getQty());
 		if (ring.isWindow(price)) {
 			ring.submit(price, node);
-		}
-		else {
+		} else {
 			cold.submit(price, node);
 		}
 		return OrderStatus.PENDING;
 	}
 
+	@Override
+	public void cancel(OrderInfo orderInfo) {
+		long price = orderInfo.getPrice();
+		long orderId = orderInfo.getOrderId();
+		if (ring.isWindow(price)) {
+			ring.cancel(price, orderId);
+		} else {
+			cold.cancel(price, orderId, orderInfo.getSide()
+												 .isAsk());
+		}
+	}
 
 	public String dump() {
 		return ring.dump();

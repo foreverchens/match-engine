@@ -2,6 +2,7 @@ package icu.match.core;
 
 import com.alibaba.fastjson2.JSON;
 
+import icu.match.common.OrderSide;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -165,9 +166,20 @@ public final class RingOrderBuffer {
 	}
 
 	/**
+	 * 基于订单方向 获取对手方最优流动性层
+	 * @param side take订单方向
+	 * @return make方向最优流动性层
+	 */
+	public PriceLevel getBestLevel(OrderSide side) {
+		return side.isAsk()
+			   ? getBidBestLevel()
+			   : getAskBestLevel();
+	}
+
+	/**
 	 * 获取最优Bid挂单
 	 */
-	public PriceLevel getBidBestLevel() {
+	private PriceLevel getBidBestLevel() {
 		int i = lastIdx;
 		while (true) {
 			PriceLevel lvl = levels[i];
@@ -186,7 +198,7 @@ public final class RingOrderBuffer {
 	/**
 	 * 获取最优Ask挂单
 	 */
-	public PriceLevel getAskBestLevel() {
+	private PriceLevel getAskBestLevel() {
 		int i = lastIdx;
 		while (true) {
 			PriceLevel lvl = levels[i];
@@ -294,6 +306,24 @@ public final class RingOrderBuffer {
 	public boolean isWindow(long price) {
 		return lowPrice <= price && price <= highPrice;
 	}
+
+	public long bestBidPrice() {
+		PriceLevel bestLevel = this.getBidBestLevel();
+		if (bestLevel == null) {
+			return Long.MIN_VALUE;
+		}
+		return bestLevel.getPrice();
+	}
+
+	public long bestAskPrice() {
+		PriceLevel bestLevel = this.getAskBestLevel();
+		if (bestLevel == null) {
+			return Long.MAX_VALUE;
+		}
+		return bestLevel.getPrice();
+	}
+
+
 
 	public String snapshot() {
 
