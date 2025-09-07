@@ -31,10 +31,15 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 		OrderInfo orderInfo = event.getOrderInfo();
 		switch (orderEventType) {
 			case NEW_ORDER:
-				OrderStatus rlt = matchEngine.submit(orderInfo);
-				log.info(rlt.toString());
-				MonoSinkManage.getSink(orderInfo.getOrderId())
-							  .success(new OrderResult());
+				try {
+					OrderStatus rlt = matchEngine.submit(orderInfo);
+					log.info(rlt.toString());
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					MonoSinkManage.getSink(orderInfo.getOrderId())
+								  .success(new OrderResult());
+				}
 				break;
 			case CANCEL_ORDER:
 				matchEngine.cancel(orderInfo);

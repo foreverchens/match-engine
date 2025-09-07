@@ -57,8 +57,7 @@ public final class PriceLevel {
 		// 队列为空 → 由首单设定本价位方向；非空 → 必须一致
 		if (queue.isEmpty()) {
 			this.ask = node.ask;
-		}
-		else if (this.ask != node.ask) {
+		} else if (this.ask != node.ask) {
 			throw new IllegalStateException("side mismatch for price " + price);
 		}
 

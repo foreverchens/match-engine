@@ -2,7 +2,6 @@ package icu.match.util;
 
 import org.springframework.beans.BeanUtils;
 
-import icu.match.common.OrderType;
 import icu.match.core.model.OrderInfo;
 import icu.match.service.match.model.Order;
 import icu.match.web.model.OrderResult;
@@ -25,7 +24,8 @@ public class ModelUtil {
 			   .orderId(originOrder.getOrderId())
 			   .symbol(originOrder.getSymbol())
 			   .side(originOrder.getSide())
-			   .orderType(OrderType.valueOf(originOrder.getType()))
+			   .orderType(originOrder.getType())
+			   .tif(originOrder.getTif())
 			   .price(originOrder.getPrice())
 			   .qty(originOrder.getOrigQty());
 		return builder.build();

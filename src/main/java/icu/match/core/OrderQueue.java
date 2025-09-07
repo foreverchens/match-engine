@@ -87,8 +87,7 @@ public class OrderQueue {
 		n.next = null;
 		if (tail == null) {
 			head = tail = n;
-		}
-		else {
+		} else {
 			n.prev = tail;
 			tail.next = n;
 			tail = n;
@@ -119,14 +118,12 @@ public class OrderQueue {
 		OrderNode p = n.prev, nx = n.next;
 		if (p == null) {
 			head = nx;
-		}
-		else {
+		} else {
 			p.next = nx;
 		}
 		if (nx == null) {
 			tail = p;
-		}
-		else {
+		} else {
 			nx.prev = p;
 		}
 		n.prev = n.next = null;

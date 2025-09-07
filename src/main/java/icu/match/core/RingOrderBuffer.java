@@ -116,7 +116,7 @@ public final class RingOrderBuffer {
 		// 初始化窗口价格与最近访问
 		this.lowPrice = levels[lowIdx].getPrice();
 		this.highPrice = levels[highIdx].getPrice();
-		this.lastIdx = this.lowIdx;
+		this.lastIdx = len / 2;
 		this.lastPrice = this.lowPrice;
 	}
 
@@ -237,6 +237,7 @@ public final class RingOrderBuffer {
 	 */
 	public OrderNode remove(long price, long orderId) {
 		int idx = priceToIdx(price);
+		this.lastIdx = idx;
 		return levels[idx].remove(orderId);
 	}
 

@@ -195,6 +195,7 @@ public final class MatchingEngine {
 		}
 		// 未完全撮合
 		if (OrderTif.GTC.equals(tif)) {
+			order.setQty(remainingQty);
 			return orderBook.submit(order);
 		} else {
 			// IOC策略

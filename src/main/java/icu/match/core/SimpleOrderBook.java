@@ -101,10 +101,11 @@ public class SimpleOrderBook implements BaseOrderBook {
 		if (makerOrder.qty == matchQty) {
 			// makerOrder 完全成交 takerOrder部分成交
 			// 将makerOrder从订单簿移除
-			bestPriceLevel.remove(makerOrder.orderId);
+			ring.remove(bestPriceLevel.getPrice(), makerOrder.orderId);
 		} else {
 			// makerOrder 部分成交 takerOrder完全成交
 			// 更新 makerOrder qty
+			// todo 通过ring对象修改部分数量
 			bestPriceLevel.patchQty(makerOrder.orderId, makerOrder.qty - matchQty);
 		}
 		return matchTradeRlt.fill(takerOrder.getUserId(), makerOrder.userId, takerOrder.getOrderId(),
