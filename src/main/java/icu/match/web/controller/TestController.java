@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import icu.match.common.CallResult;
-import icu.match.core.MatchingEngine;
+import icu.match.service.match.MatchingEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,11 +41,6 @@ public class TestController {
 
 	@Resource
 	private MatchingEngine matchingEngine;
-
-	@GetMapping("/dump")
-	public Mono<String> dump() {
-		return Mono.just(matchingEngine.dump());
-	}
 
 	@GetMapping("/snap")
 	public Mono<String> snap() {

@@ -1,235 +1,529 @@
-<!DOCTYPE html>
-<html>
-
-<link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet" type="text/css">
-<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-
-
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>BTC Order Book Depth</title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Trade Page · Demo</title>
     <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #171a21;
+            --muted: #2a2f3a;
+            --text: #e7eaf0;
+            --sub: #a6adbb;
+            --buy: #1f8a4c;
+            --sell: #a83a3a;
+            --accent: #2f81f7;
+            --ok: #1f8a4c;
+            --warn: #a83a3a;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html, body {
+            height: 100%
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #111;
-            color: #eee;
-            padding: 120px;
+            margin: 0;
+            font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--bg);
         }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 80px;
-            font-size: 180px; /* 标题更大 */
+        .container {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            grid-gap: 16px;
         }
 
-        .orderbook {
+        /* Panels */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--muted);
+            border-radius: 12px;
+            overflow: hidden
+        }
+
+        .panel-header {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--muted);
             display: flex;
-            justify-content: center;
-            gap: 120px; /* 两边表格间距更大 */
+            align-items: center;
+            justify-content: space-between
         }
 
+        .title {
+            font-weight: 700
+        }
+
+        .sub {
+            color: var(--sub);
+            font-size: 12px
+        }
+
+        .panel-body {
+            padding: 10px 12px
+        }
+
+        /* Order book */
         table {
-            border-collapse: collapse;
-            width: 1800px;
-            background: #222;
-            color: #eee;
-            font-size: 32px;
+            width: 100%;
+            border-collapse: collapse
         }
 
         th, td {
-            padding: 64px;
-            text-align: center; /* 👈 居中对齐 */
+            padding: 8px 6px;
+            text-align: right
         }
 
         th {
-            background: #333;
-            font-size: 100px;
+            text-align: right;
+            color: var(--sub);
+            font-weight: 600;
+            font-size: 12px
         }
 
-        td {
-            font-size: 60px; /* 👈 数据更大，看着醒目 */
-            font-weight: bold;
+        tr + tr td {
+            border-top: 1px dashed #242a35
         }
 
-        tr.ask {
-            background-color: rgba(255, 0, 0, 0.25);
+        .row-buy {
+            background: linear-gradient(90deg, rgba(31, 138, 76, .15), transparent)
         }
 
-        tr.bid {
-            background-color: rgba(0, 255, 0, 0.25);
+        .row-sell {
+            background: linear-gradient(90deg, rgba(168, 58, 58, .15), transparent)
         }
 
-
-        /* 下单表单 */
-        .order-form {
-            width: 2000px;
-            margin: 0 auto;
-            padding: 80px;
-            background: #1c1c1c;
-            border-radius: 40px;
-            font-size: 70px;
+        .price {
+            font-variant-numeric: tabular-nums
         }
 
-        .order-form label {
-            display: block;
-            margin-top: 50px;
-            margin-bottom: 40px;
+        .qty {
+            font-variant-numeric: tabular-nums
         }
 
-        .order-form input {
-            width: 100%;
-            padding: 24px;
-            font-size: 50px;
-            border: 1px solid #444;
-            border-radius: 6px;
-            background: #222;
-            color: #fff;
+        .side-b {
+            color: var(--buy)
         }
 
-        .buttons {
+        .side-s {
+            color: var(--sell)
+        }
+
+        /* Chart placeholder */
+        #kline {
+            height: 420px;
             display: flex;
-            justify-content: space-between;
-            margin-top: 90px;
+            align-items: center;
+            justify-content: center;
+            color: var(--sub);
+            background: radial-gradient(transparent 0 74%, rgba(255, 255, 255, .02) 74% 100%),
+            linear-gradient(#131722, #11141a);
         }
 
-        .buy-btn, .sell-btn {
-            flex: 1;
-            padding: 95px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 6px;
-            font-size: 90px;
+        /* Order form */
+        .form {
+            display: grid;
+            grid-template-columns:1fr 1fr;
+            grid-gap: 10px
+        }
+
+        .form .col-span-2 {
+            grid-column: 1 / -1
+        }
+
+        label {
+            display: block;
+            margin: 0 0 6px 2px;
+            color: var(--sub);
+            font-size: 12px
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--muted);
+            background: #0e1218;
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: #3a4454
+        }
+
+        .btn {
+            appearance: none;
+            border: 0;
+            padding: 12px 14px;
+            border-radius: 10px;
             cursor: pointer;
-            color: white;
+            font-weight: 700;
         }
 
-        .buy-btn {
-            background: #16a34a;
+        .btn-buy {
+            background: var(--buy);
+            color: #fff
         }
 
-        .sell-btn {
-            background: #dc2626;
+        .btn-sell {
+            background: var(--sell);
+            color: #fff
         }
 
-        .buy-btn:hover {
-            background: #22c55e;
+        .btn:active {
+            transform: translateY(1px)
         }
 
-        .sell-btn:hover {
-            background: #ef4444;
+        .hint {
+            font-size: 12px;
+            color: var(--sub)
         }
 
+        /* Bottom trades bar */
+        .bottom {
+            grid-column: 1 / -1
+        }
 
+        .trades {
+            max-height: 240px;
+            overflow: auto
+        }
+
+        .flex {
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        .pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            border: 1px solid var(--muted);
+            color: var(--sub)
+        }
+
+        .mono {
+            font-variant-numeric: tabular-nums
+        }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+            .container {
+                grid-template-columns:1fr
+            }
+        }
     </style>
 </head>
 <body>
-<h2>BTC Order Book Depth (Live)</h2>
-<div class="orderbook">
-    <div>
-        <h2 style="text-align:center;">Bids (买盘)</h2>
-        <table id="bidsTable">
-            <thead>
-            <tr>
-                <th>Price</th>
-                <th>Qty</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-    <div>
-        <h2 style="text-align:center;">Asks (卖盘)</h2>
-        <table id="asksTable">
-            <thead>
-            <tr>
-                <h3>
-                    <th>Price</th>
-                    <th>Qty</th>
-                </h3>
-            </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
-</div>
+<div class="container">
 
-<div class="order-form">
-    <div class="order-inputs">
-        <label>价格</label>
-        <input id="price" placeholder="输入价格" type="number"/>
-        <label>数量</label>
-        <input id="qty" placeholder="输入数量" type="number"/>
-    </div>
+    <!-- Left: Order Book -->
+    <section class="panel" id="orderbook">
+        <div class="panel-header">
+            <div class="title">订单簿 Order Book</div>
+            <div class="sub">BTC/USDT</div>
+        </div>
+        <div class="panel-body">
+            <div style="display:grid; grid-template-columns:1fr; gap:10px">
+                <div class="panel" style="border:none">
+                    <div class="panel-header"><span class="title">卖盘 Asks</span><span class="pill">Top 20</span></div>
+                    <div class="panel-body" style="padding-top:0">
+                        <table id="asks">
+                            <thead>
+                            <tr>
+                                <th>价格</th>
+                                <th>数量</th>
+                                <th>累计</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="panel" style="border:none">
+                    <div class="panel-header"><span class="title">买盘 Bids</span><span class="pill">Top 20</span></div>
+                    <div class="panel-body" style="padding-top:0">
+                        <table id="bids">
+                            <thead>
+                            <tr>
+                                <th>价格</th>
+                                <th>数量</th>
+                                <th>累计</th>
+                            </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-    <div class="order-buttons">
-        <button class="buy-btn" onclick="placeOrder('BID')">买入</button>
-        <button class="sell-btn" onclick="placeOrder('ASK')">卖出</button>
-    </div>
+    <!-- Right: K-line + Order Form -->
+    <section class="panel">
+        <div class="panel-header">
+            <div class="title">行情 K线</div>
+            <div class="flex">
+                <span class="pill">1m</span><span class="pill">5m</span><span class="pill">1h</span><span class="pill">1d</span>
+            </div>
+        </div>
+        <div class="panel-body">
+            <div id="kline">K 线占位（可接入 TradingView / Lightweight Charts / ECharts）</div>
+        </div>
+
+        <div class="panel-header">
+            <div class="title">下单 Order Form</div>
+            <div class="sub">支持：限价 / 市价 · GTC / IOC / FOK</div>
+        </div>
+        <div class="panel-body">
+            <form class="form" id="orderForm" onsubmit="return false">
+                <div>
+                    <label for="side">方向</label>
+                    <select id="side">
+                        <option value="BID">买入 (BUY)</option>
+                        <option value="ASK">卖出 (SELL)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="type">类型</label>
+                    <select id="type">
+                        <option value="LIMIT">限价单</option>
+                        <option value="MARKET">市价单</option>
+                        <option value="STOP">止损单</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="price">价格</label>
+                    <input id="price" placeholder="例如 104" step="0.01" type="number"/>
+                </div>
+                <div>
+                    <label for="qty">数量</label>
+                    <input id="qty" placeholder="例如 1.0" step="0.0001" type="number"/>
+                </div>
+                <div>
+                    <label for="tif">有效时间 (TIF)</label>
+                    <select id="tif">
+                        <option value="GTC">GTC</option>
+                        <option value="IOC">IOC</option>
+                        <option value="FOK">FOK</option>
+                    </select>
+                </div>
+                <div class="col-span-2 hint">提示：市价单可忽略价格；提交仅本地演示。可用 WebSocket/HTTP 对接后端撮合。
+                </div>
+                <div class="col-span-2" style="display:flex; gap:10px">
+                    <button class="btn btn-buy" id="btnBuy">买入</button>
+                    <button class="btn btn-sell" id="btnSell">卖出</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Bottom: Trades -->
+    <section class="panel bottom" id="tradesPanel">
+        <div class="panel-header">
+            <div class="title">成交列表 Trades</div>
+            <div class="sub">最近成交（实时）</div>
+        </div>
+        <div class="panel-body trades">
+            <table id="trades">
+                <thead>
+                <tr>
+                    <th style="text-align:left">symbol</th>
+                    <th>takerOrderId</th>
+                    <th>takerSide</th>
+                    <th>makerOrderId</th>
+                    <th>price</th>
+                    <th>qty</th>
+                    <th>tradeTime</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+    </section>
+
 </div>
 
 <script>
-    const ws = new WebSocket("ws://localhost:8080/ws/depth");
+    // ===== Depth WS (适配新页面) =====
+    const DEPTH_URL = "ws://localhost:8080/ws/depth";
+    const TOP_N = 20;                           // 只展示前 N 档
+    const fmt = (n, d = 2) => Number(n).toLocaleString(
+        undefined, {minimumFractionDigits: d, maximumFractionDigits: d}
+    );
 
-    ws.onmessage = e => {
-        const arr = JSON.parse(e.data);
-        const bids = arr[0];
-        const asks = arr[1];
+    let depthSocket, retry = 0;
 
-        renderTable("bidsTable", bids, "bid", false); // 买盘降序
-        renderTable("asksTable", asks, "ask", true);  // 卖盘升序
-    };
+    function connectDepth() {
+        depthSocket = new WebSocket(DEPTH_URL);
 
-    function renderTable(tableId, obj, rowClass, asc) {
-        const tbody = document.getElementById(tableId).querySelector("tbody");
+        depthSocket.onopen = () => {
+            retry = 0; /* console.log('depth ws open'); */
+        };
+
+        depthSocket.onmessage = (e) => {
+            // 服务端： [bidsMap, asksMap]
+            const arr = JSON.parse(e.data);
+            console.log(arr)
+            const bidsMap = arr[0] || {};
+            const asksMap = arr[1] || {};
+
+            // map -> [{price, qty}]
+            const bids = Object.entries(bidsMap)
+                .map(([p, q]) => ({price: parseFloat(p), qty: Number(q)}))
+                .filter(r => r.qty > 0);
+            const asks = Object.entries(asksMap)
+                .map(([p, q]) => ({price: parseFloat(p), qty: Number(q)}))
+                .filter(r => r.qty > 0);
+
+            // 排序：买盘降序（从最优买价开始），卖盘升序（从最优卖价开始）
+            bids.sort((a, b) => b.price - a.price);
+            asks.sort((a, b) => b.price - a.price);
+
+            // 只取 Top N
+            renderBook("#bids", bids.slice(0, TOP_N), /*isAsk=*/false);
+            renderBook("#asks", asks.slice(0, TOP_N), /*isAsk=*/true);
+        };
+
+        depthSocket.onclose = () => {
+            // 指数退避重连
+            const delay = Math.min(30000, 1000 * Math.pow(2, retry++));
+            setTimeout(connectDepth, delay);
+        };
+
+        depthSocket.onerror = () => {
+            try {
+                depthSocket.close();
+            } catch {
+            }
+        };
+    }
+
+    function renderBook(tableSelector, rows, isAsk) {
+        const tbody = document.querySelector(`${tableSelector} tbody`);
+        if (!tbody) return;
+
         tbody.innerHTML = "";
+        let cum = 0;
 
-        // 转换成 [price, qty] 数组
-        let rows = Object.entries(obj).map(([price, qty]) => [parseFloat(price), qty]);
-
-        // 排序
-        rows.sort((a, b) => asc ? a[0] - b[0] : b[0] - a[0]);
-
-        rows.forEach(([price, qty]) => {
+        rows.forEach(({price, qty}) => {
+            cum += qty;
             const tr = document.createElement("tr");
-            tr.className = rowClass;
-            tr.innerHTML = `<td>${price}</td><td>${qty}</td>`;
+            tr.className = isAsk ? "row-sell" : "row-buy";
+            tr.innerHTML = `
+      <td class="price">${fmt(price, 2)}</td>
+      <td class="qty">${fmt(qty, 4)}</td>
+      <td class="qty mono">${fmt(cum, 4)}</td>
+    `;
             tbody.appendChild(tr);
         });
     }
 
-    async function placeOrder(side) {
-        const price = document.getElementById("price").value;
-        const qty = document.getElementById("qty").value;
+    // 启动
+    connectDepth();
 
-        if (!price || !qty) {
-            alert("请输入价格和数量");
+
+    /** -----------------------
+     *  Order form (提交到后端)
+     *  ----------------------*/
+    async function submitOrder(side) {
+        const type = document.getElementById('type').value;
+        const tif = document.getElementById('tif').value;
+        const price = parseFloat(document.getElementById('price').value || '0');
+        const qty = parseFloat(document.getElementById('qty').value || '0');
+
+        if (!qty || (type === 'LIMIT' && !price)) {
+            alert('请填写价格/数量');
             return;
         }
+
+        const order = {
+            userId: 1,
+            orderId: Math.round(Math.random() * 100000000),
+            symbol: "BTCUSDT",
+            type: type,       // LIMIT / MARKET / STOP
+            tif: tif,         // GTC / IOC / FOK
+            side: side,       // BID / ASK
+            price: type === 'MARKET' ? 0 : price,
+            origQty: qty
+        };
+
         try {
             const res = await fetch("http://localhost:8080/api/order", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    userId: 1,
-                    orderId: Math.round(Math.random() * 1000),
-                    symbol: "BTCUSDT",
-                    type: "LIMIT",
-                    tif: "GTC",
-                    side: side,   // "buy" 或 "sell"
-                    price: price,
-                    origQty: qty
-                })
+                body: JSON.stringify(order)
             });
-
-            if (res.ok) {
-                alert(`下单成功: ${side.toUpperCase()} ${qty} @ ${price}`);
-            } else {
-                alert("下单失败");
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || "下单失败");
             }
+
+            const data = await res.json().catch(() => ({}));
+            alert("下单成功 ✅\n订单号: " + order.orderId);
+            document.getElementById('orderForm').reset();
+
+            // 可选：把订单当作成交推送到前端演示
+            // pushTrade({time: Date.now(), price: price || 0, qty, side});
+
         } catch (err) {
-            alert("请求错误: " + err.message);
+            alert("下单失败 ❌: " + err.message);
         }
     }
+
+    document.getElementById('btnBuy').addEventListener('click', () => submitOrder('BID'));
+    document.getElementById('btnSell').addEventListener('click', () => submitOrder('ASK'));
+
+    /** -----------------------
+     *  trades
+     *  ----------------------*/
+    async function loadTrades() {
+        try {
+            const res = await fetch("http://localhost:8080/api/order/trades");
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const trades = await res.json();
+
+            const tb = document.querySelector('#trades tbody');
+            tb.innerHTML = "";
+
+            trades.forEach(t => {
+                const sideClass = t.takerSide === 'BUY' ? 'side-b' : 'side-s';
+                const ms = t.tradeTime > 1e12 ? t.tradeTime : t.tradeTime * 1000;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+        <td style="text-align:left">${t.symbol}</td>
+        <td class="mono">${t.takerOrderId}</td>
+        <td class="${sideClass}">${t.takerSide}</td>
+        <td class="mono">${t.makerOrderId}</td>
+        <td class="mono">${fmt(t.price, 2)}</td>
+        <td class="mono">${fmt(t.qty, 4)}</td>
+        <td class="mono">${new Date(ms).toLocaleString()}</td>
+      `;
+                tb.appendChild(tr);
+            });
+        } catch (err) {
+            console.error("加载成交失败:", err);
+        }
+    }
+
+    // 页面加载完就拉一次
+    loadTrades();
+    setInterval(loadTrades, 5000);
+
+
+    // TODO: K线：可在此接入 TradingView / Lightweight Charts / ECharts
 </script>
 </body>
 </html>

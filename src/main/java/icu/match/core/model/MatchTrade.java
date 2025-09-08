@@ -4,6 +4,10 @@ package icu.match.core.model;/**
  * @date 2025/8/17
  */
 
+import org.springframework.data.relational.core.mapping.Table;
+
+import icu.match.common.OrderSide;
+import icu.match.util.SnowFlakeIdUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,9 +21,14 @@ import lombok.ToString;
 @Data
 @Builder
 @ToString
+@Table("match_trade")
 @NoArgsConstructor
 @AllArgsConstructor
-public final class MatchTradeRlt {
+public final class MatchTrade {
+
+	long matchSeq;
+
+	String symbol;
 
 	long takerUserId;
 
@@ -29,33 +38,40 @@ public final class MatchTradeRlt {
 
 	long makerOrderId;
 
+	OrderSide takerSide;
+
 	long price;
 
 	long qty;
 
-	long time;
+	long tradeTime;
 
 	/** 复用前清空（可选） */
 	public void clear() {
+		matchSeq = 0;
+		symbol = null;
 		takerUserId = 0L;
 		makerUserId = 0L;
 		takerOrderId = 0L;
 		makerOrderId = 0L;
 		price = 0L;
 		qty = 0L;
-		time = 0L;
+		tradeTime = 0L;
 	}
 
-	public MatchTradeRlt fill(long tUid, long mUid, long tOid, long mOid, long price, long qty, long time) {
+	public MatchTrade fill(String symbol, long tUid, long mUid, long tOid, long mOid, OrderSide takerSide, long price,
+						   long qty) {
+		this.matchSeq = SnowFlakeIdUtil.nextId();
+		this.symbol = symbol;
 		this.takerUserId = tUid;
 		this.makerUserId = mUid;
 		this.takerOrderId = tOid;
 		this.makerOrderId = mOid;
+		this.takerSide = takerSide;
 		this.price = price;
 		this.qty = qty;
-		this.time = time;
+		this.tradeTime = System.currentTimeMillis();
 		return this;
 	}
-
 
 }

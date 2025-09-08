@@ -52,10 +52,8 @@ public final class RingOrderBuffer {
 	/**
 	 * 环形数组的左右边界索引。
 	 */
-	@Getter
 	private int lowIdx;
 
-	@Getter
 	private int highIdx;
 
 	/**
@@ -68,13 +66,21 @@ public final class RingOrderBuffer {
 	private long highPrice;
 
 	/**
-	 * 最近一次成交/访问位置
+	 * 最近一次maker被成交 或最优买1卖价位置
+	 * maker被成交 将调用remove 或patchQty函数
+	 * 最优价更新 submit
 	 */
-	@Getter
 	private int lastIdx;
 
-	@Getter
 	private long lastPrice;
+
+	private int bestBidIdx;
+
+	private long bestBidPrice;
+
+	private int bestAskIdx;
+
+	private long bestAskPrice;
 
 	/**
 	 * 构造热区环形缓冲。
@@ -107,6 +113,7 @@ public final class RingOrderBuffer {
 		this.highIdx = mask;
 
 		// 全量初始化：index → price = lowPrice + i * step
+		// 保持初始数组的价格升序排序
 		this.levels = new PriceLevel[len];
 		for (int i = 0; i < len; i++) {
 			long priceAtIdx = lowPrice + (long) i * step;
@@ -116,15 +123,21 @@ public final class RingOrderBuffer {
 		// 初始化窗口价格与最近访问
 		this.lowPrice = levels[lowIdx].getPrice();
 		this.highPrice = levels[highIdx].getPrice();
-		this.lastIdx = len / 2;
-		this.lastPrice = this.lowPrice;
+
+		// 初始最优bidIdx为 highIdx  在第一次get bestBidLevel时 会从高往低查找
+		this.bestBidIdx = highIdx;
+		this.bestBidPrice = Long.MIN_VALUE;
+
+		// 初始最优AskIdx为 lowIdx  在第一次get bestAskLevel时 会从低往高查找
+		this.bestAskIdx = lowIdx;
+		this.bestAskPrice = Long.MAX_VALUE;
 	}
 
 	// ------------------------------------------------------------------
-	// 基本操作
+	// 核心接口
 	// ------------------------------------------------------------------
 
-	private static int ceilPow2(int n) {
+	private int ceilPow2(int n) {
 		int x = 1;
 		while (x < n) {
 			x <<= 1;
@@ -133,15 +146,23 @@ public final class RingOrderBuffer {
 	}
 
 	/**
+	 * 订单提交
 	 * 将订单提交到指定价格的价位桶（尾插）。
 	 * 价格是否位于热区 由上层检查
 	 */
 	public void submit(long price, OrderNode node) {
-		int idx = priceToIdx(price);
-		levels[idx].submit(node);
+		int idx = getIdxByPrice(price);
+		PriceLevel level = levels[idx];
+		if (level.isEmpty()) {
+			// 当前level 开始有数据 尝试更新买1卖1价
+			updateBest(idx, price, node.ask);
+		}
+		level.submit(node);
 	}
 
 	/**
+	 * 基于price获取其idx
+	 *
 	 * 将价格映射到当前热区内的数组索引。
 	 * <p>仅在“价格已保证位于热区 [lowPrice, highPrice] 且按 step 对齐”的场景下使用。</p>
 	 *
@@ -149,7 +170,7 @@ public final class RingOrderBuffer {
 	 * @return 对应的数组索引（环绕到 [0, length-1]）
 	 * @throws IllegalArgumentException 当价格未按 step 对齐时抛出
 	 */
-	private int priceToIdx(long price) {
+	private int getIdxByPrice(long price) {
 		assert price >= lowPrice && price <= highPrice : "price out of hot window";
 		long delta = price - this.lowPrice;
 
@@ -166,21 +187,41 @@ public final class RingOrderBuffer {
 	}
 
 	/**
+	 * 更新最优买1卖1
+	 */
+	private void updateBest(int curIdx, long curPrice, boolean ask) {
+		if (ask) {
+			// 新增订单为ask 尝试更新卖1价格
+			if (curPrice < this.bestAskPrice) {
+				this.bestAskPrice = curPrice;
+				this.bestAskIdx = curIdx;
+			}
+		} else {
+			// 新增订单为bid 尝试更新买1价格
+			if (curPrice > this.bestBidPrice) {
+				this.bestBidPrice = curPrice;
+				this.bestBidIdx = curIdx;
+			}
+		}
+	}
+
+	/**
+	 * 获取最优流动性层
 	 * 基于订单方向 获取对手方最优流动性层
 	 * @param side take订单方向
 	 * @return make方向最优流动性层
 	 */
 	public PriceLevel getBestLevel(OrderSide side) {
 		return side.isAsk()
-			   ? getBidBestLevel()
-			   : getAskBestLevel();
+			   ? getBestBidLevel()
+			   : getBestAskLevel();
 	}
 
 	/**
 	 * 获取最优Bid挂单
 	 */
-	private PriceLevel getBidBestLevel() {
-		int i = lastIdx;
+	private PriceLevel getBestBidLevel() {
+		int i = bestBidIdx;
 		while (true) {
 			PriceLevel lvl = levels[i];
 			if (!lvl.isEmpty() && !lvl.isAsk()) {
@@ -195,11 +236,15 @@ public final class RingOrderBuffer {
 		return null;
 	}
 
+	// ------------------------------------------------------------------
+	// 工具接口
+	// ------------------------------------------------------------------
+
 	/**
 	 * 获取最优Ask挂单
 	 */
-	private PriceLevel getAskBestLevel() {
-		int i = lastIdx;
+	private PriceLevel getBestAskLevel() {
+		int i = bestAskIdx;
 		while (true) {
 			PriceLevel lvl = levels[i];
 			if (!lvl.isEmpty() && lvl.isAsk()) {
@@ -215,39 +260,126 @@ public final class RingOrderBuffer {
 	}
 
 	/**
-	 * 撤单（不回收）：按价格与订单 ID 从对应价位摘除
+	 * 获取可与taker价格立即撮合的总数量
+	 * @param takerSide taker方向
+	 * @param takerPrice taker价格
+	 * @return
+	 */
+	public long getTotalQty(OrderSide takerSide, long takerPrice) {
+		long rlt = 0;
+		if (takerSide.isAsk()) {
+			// ask
+			int idx = bestBidIdx;
+			while (getLeftIdx(idx) != bestAskIdx) {
+				PriceLevel level = levels[idx];
+				if (level.getPrice() < takerPrice) {
+					break;
+				}
+				rlt += level.totalQty();
+				idx = getLeftIdx(idx);
+			}
+		} else {
+			// bid
+			int idx = bestAskIdx;
+			while (getLeftIdx(idx) != bestBidIdx) {
+				PriceLevel level = levels[idx];
+				if (level.getPrice() > takerPrice) {
+					break;
+				}
+				rlt += levels[idx].totalQty();
+				idx = getRightIdx(idx);
+			}
+		}
+		return rlt;
+	}
+
+	/**
+	 * 撤单
+	 * 按价格与订单 ID 从对应价位摘除
 	 * @param price 用于定位PriceLevel
 	 * @param orderId 用于定位OrderNode
 	 * @return OrderNode
 	 */
 	public OrderNode cancel(long price, long orderId) {
-		int idx = priceToIdx(price);
-		return levels[idx].cancel(orderId);
+		int idx = getIdxByPrice(price);
+		OrderNode cancel = levels[idx].cancel(orderId);
+		if (cancel != null && levels[idx].isEmpty()) {
+			// 成功撤单后 该槽为空 尝试更新最优买1卖1价格
+			updateBest(idx, price, cancel.ask);
+		}
+		return cancel;
 	}
 
 	// ------------------------------------------------------------------
-	// 窗口滑动 & 冷热交换（单步）
+	// 核心私有函数
 	// ------------------------------------------------------------------
 
 	/**
-	 * 完全成交删除（不回收）：按价格与订单 ID 从对应价位摘除
+	 * 完全成交删除
+	 * 按价格与订单 ID 从对应价位摘除
 	 * @param price 用于定位PriceLevel
 	 * @param orderId 用于定位OrderNode
 	 * @return OrderNode
 	 */
 	public OrderNode remove(long price, long orderId) {
-		int idx = priceToIdx(price);
-		this.lastIdx = idx;
-		return levels[idx].remove(orderId);
+		int idx = getIdxByPrice(price);
+		OrderNode remove = levels[idx].remove(orderId);
+		if (remove != null && levels[idx].isEmpty()) {
+			// 成功撤单后 该槽为空 尝试更新最优买1卖1价格
+			updateBest(idx, price, remove.ask);
+		}
+		return remove;
 	}
 
 	/**
-	 * 更新lastIdx和lastPrice
+	 * 修改订单数量
+	 *
+	 * @param price 定位订单槽
+	 * @param orderId 订单Id
+	 * @param newQty 新数量
 	 */
-	public void recordTradePrice(long tradedPrice) {
-		this.lastIdx = priceToIdx(tradedPrice);
-		this.lastPrice = tradedPrice;
+	public boolean patchQty(long price, long orderId, long newQty) {
+		return levels[getIdxByPrice(price)].patchQty(orderId, newQty);
 	}
+
+	/**
+	 * 检查价格是否位于热区
+	 */
+	public boolean isWindow(long price) {
+		return lowPrice <= price && price <= highPrice;
+	}
+
+	/**
+	 * 获取最优bid ask价格
+	 */
+	public long bestBidPrice() {
+		PriceLevel bestLevel = this.getBestBidLevel();
+		if (bestLevel == null) {
+			return Long.MIN_VALUE;
+		}
+		return bestLevel.getPrice();
+	}
+
+	public long bestAskPrice() {
+		PriceLevel bestLevel = this.getBestAskLevel();
+		if (bestLevel == null) {
+			return Long.MAX_VALUE;
+		}
+		return bestLevel.getPrice();
+	}
+
+	/**
+	 * 计算当前Bid区所占百分比
+	 */
+	public double getSlopeRate() {
+		final int forward = (bestBidIdx - lowIdx) & mask;
+		return (forward * 100.0) / mask;
+	}
+
+
+	// ------------------------------------------------------------------
+	// 窗口滑动和快照相关接口
+	// ------------------------------------------------------------------
 
 	/**
 	 * 让窗口一次性迁移到把 incoming（冷区档位）纳入热区的状态。
@@ -286,8 +418,7 @@ public final class RingOrderBuffer {
 			}
 			// 第 k 步：把 incoming 放到“被挤出索引”
 			evicted.add(shiftLeft(incoming));
-		}
-		else if (p > highPrice) {
+		} else if (p > highPrice) {
 			long delta = p - highPrice;
 			if (delta % step != 0) {
 				throw new IllegalArgumentException("incoming price not aligned to step: " + p);
@@ -302,56 +433,6 @@ public final class RingOrderBuffer {
 		}
 		return evicted;
 	}
-
-
-	public boolean isWindow(long price) {
-		return lowPrice <= price && price <= highPrice;
-	}
-
-	public long bestBidPrice() {
-		PriceLevel bestLevel = this.getBidBestLevel();
-		if (bestLevel == null) {
-			return Long.MIN_VALUE;
-		}
-		return bestLevel.getPrice();
-	}
-
-	public long bestAskPrice() {
-		PriceLevel bestLevel = this.getAskBestLevel();
-		if (bestLevel == null) {
-			return Long.MAX_VALUE;
-		}
-		return bestLevel.getPrice();
-	}
-
-
-
-	public String snapshot() {
-
-		Map<String, String> bids = new HashMap<String, String>();
-		Map<String, String> asks = new HashMap<String, String>();
-
-		for (int i = lowIdx; i < highIdx; i = getRightIdx(i)) {
-			PriceLevel lvl = levels[i];
-			if (lvl.isEmpty()) {
-				continue;
-			}
-			long price = lvl.getPrice();
-			String snapshot = lvl.snapshot();
-			if (lvl.isAsk()) {
-				asks.put(String.valueOf(price), snapshot);
-			}
-			else {
-				bids.put(String.valueOf(price), snapshot);
-			}
-		}
-		return JSON.toJSONString(Arrays.asList(bids, asks));
-	}
-
-
-	// ------------------------------------------------------------------
-	// 打印
-	// ------------------------------------------------------------------
 
 	/**
 	 * 向左滑动一个步长（整体价格下移）。
@@ -378,15 +459,11 @@ public final class RingOrderBuffer {
 		levels[evictIdx] = coldBid;
 
 		// 仅更新窗口价格；不改 lastIdx/lastPrice（成交后另行设置）
-		lowPrice = indexToPrice(lowIdx);
-		highPrice = indexToPrice(highIdx);
+		lowPrice = getPriceByIdx(lowIdx);
+		highPrice = getPriceByIdx(highIdx);
 
 		return evicted;
 	}
-
-	// ------------------------------------------------------------------
-	// 内部工具
-	// ------------------------------------------------------------------
 
 	/**
 	 * 向右滑动一个步长（整体价格上移）。
@@ -405,15 +482,50 @@ public final class RingOrderBuffer {
 
 		levels[evictIdx] = coldAsk;
 
-		lowPrice = indexToPrice(lowIdx);
-		highPrice = indexToPrice(highIdx);
+		lowPrice = getPriceByIdx(lowIdx);
+		highPrice = getPriceByIdx(highIdx);
 
 		return evicted;
 	}
 
-	/** index → price（固定映射）。 */
-	private long indexToPrice(int idx) {
+	/**
+	 * 基于idx获取其price
+	 */
+	private long getPriceByIdx(int idx) {
 		return levels[idx].getPrice();
+	}
+
+	/**
+	 * 更新lastIdx和lastPrice
+	 */
+	@Deprecated
+	public void recordTradePrice(long tradedPrice) {
+		this.lastIdx = getIdxByPrice(tradedPrice);
+		this.lastPrice = tradedPrice;
+	}
+
+	/**
+	 * 快照
+	 */
+	public String snapshot() {
+
+		Map<String, String> bids = new HashMap<String, String>();
+		Map<String, String> asks = new HashMap<String, String>();
+
+		for (int i = lowIdx; i < highIdx; i = getRightIdx(i)) {
+			PriceLevel lvl = levels[i];
+			if (lvl.isEmpty()) {
+				continue;
+			}
+			long price = lvl.getPrice();
+			String snapshot = String.valueOf(lvl.totalQty());
+			if (lvl.isAsk()) {
+				asks.put(String.valueOf(price), snapshot);
+			} else {
+				bids.put(String.valueOf(price), snapshot);
+			}
+		}
+		return JSON.toJSONString(Arrays.asList(bids, asks));
 	}
 
 	private int getRightIdx(int idx) {
@@ -423,77 +535,4 @@ public final class RingOrderBuffer {
 	private int getLeftIdx(int idx) {
 		return (idx - 1) & mask;
 	}
-
-	public String dump() {
-		StringBuilder sb = new StringBuilder(256);
-		sb.append("RingOrderBuffer{symbol=")
-		  .append(symbol)
-		  .append(", step=")
-		  .append(step)
-		  .append(", length=")
-		  .append(length)
-		  .append(", window=[")
-		  .append(lowPrice)
-		  .append("..")
-		  .append(highPrice)
-		  .append("]")
-		  .append(", lowIdx=")
-		  .append(lowIdx)
-		  .append(", highIdx=")
-		  .append(highIdx)
-		  .append(", lastIdx=")
-		  .append(lastIdx)
-		  .append(", lastPrice=")
-		  .append(lastPrice)
-		  .append("}\n");
-
-		int i = lowIdx;
-		int shown = 0;
-		int limit = 64;
-		while (true) {
-			PriceLevel p = levels[i];
-			if (!p.isEmpty()) {
-				sb.append("  [idx=")
-				  .append(i)
-				  .append(", price=")
-				  .append(p.getPrice())
-				  .append(", side=")
-				  .append(p.isAsk()
-						  ? "ASK"
-						  : "BID")
-				  .append(", size=")
-				  .append(p.size())
-				  .append(", totalQty=")
-				  .append(p.totalQty())
-				  .append("]\n");
-				if (++shown >= limit) {
-					break;
-				}
-			}
-			if (i == highIdx) {
-				break;
-			}
-			i = (i + 1) & mask;
-		}
-		if (shown == 0) {
-			sb.append("  <empty>\n");
-		}
-		return sb.toString();
-	}
-
-	/** idx 是否在当前窗口内。 */
-	private boolean inWindow(int idx) {
-		int i = lowIdx;
-		while (true) {
-			if (i == idx) {
-				return true;
-			}
-			if (i == highIdx) {
-				return false;
-			}
-			i = (i + 1) & mask;
-		}
-	}
-
-
 }

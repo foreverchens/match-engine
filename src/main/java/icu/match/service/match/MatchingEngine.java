@@ -1,4 +1,4 @@
-package icu.match.core;
+package icu.match.service.match;
 
 import org.springframework.stereotype.Component;
 
@@ -6,14 +6,19 @@ import icu.match.common.OrderSide;
 import icu.match.common.OrderStatus;
 import icu.match.common.OrderTif;
 import icu.match.common.OrderType;
+import icu.match.core.ColdOrderBuffer;
+import icu.match.core.RingOrderBuffer;
+import icu.match.core.SimpleOrderBook;
 import icu.match.core.interfaces.BaseOrderBook;
 import icu.match.core.interfaces.MatchSink;
 import icu.match.core.model.BestLiqView;
-import icu.match.core.model.MatchTradeRlt;
+import icu.match.core.model.MatchTrade;
 import icu.match.core.model.OrderInfo;
+import icu.match.web.service.MatchTradeService;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +44,9 @@ public final class MatchingEngine {
 	private final Map<String, BaseOrderBook> orderBookMap;
 
 	private MatchSink matchSink;
+
+	@Resource
+	private MatchTradeService matchTradeService;
 
 	public MatchingEngine() {
 		orderBookMap = new HashMap<>();
@@ -119,12 +127,15 @@ public final class MatchingEngine {
 			}
 			long totalMatchedQty = 0;
 			while (totalMatchedQty < bestLiqView.getTotalQty()) {
-				MatchTradeRlt matchTradeRlt = orderBook.matchHead(order);
-				long matchedQty = matchTradeRlt.getQty();
+				MatchTrade matchTrade = orderBook.matchHead(order.getSide(), order.getQty(), order.getUserId(),
+															order.getOrderId());
+				long matchedQty = matchTrade.getQty();
 				remainingQty -= matchedQty;
 				totalMatchedQty += matchedQty;
+				order.setQty(remainingQty);
 				//　todo matchTradeRlt结果的发布 写wal日志 通知订单 账户模块等等
-				log.info("matchTradeRlt:{}", matchTradeRlt);
+				matchTradeService.saveTrade(matchTrade)
+								 .block();
 				if (remainingQty == 0) {
 					break;
 				}
@@ -182,11 +193,16 @@ public final class MatchingEngine {
 		// 2.4 对可撮合数量部分进行撮合
 		while (canMatchQty > 0) {
 			// 2.4.1 不断进行头节点撮合 同时更新可撮合数量
-			MatchTradeRlt matchTradeRlt = orderBook.matchHead(order);
-			long matchedQty = matchTradeRlt.getQty();
+			MatchTrade matchTrade = orderBook.matchHead(order.getSide(), order.getQty(), order.getUserId(),
+														order.getOrderId());
+			long matchedQty = matchTrade.getQty();
 			canMatchQty -= matchedQty;
+			order.setQty(canMatchQty);
 			//　todo matchTradeRlt结果的发布 写wal日志 通知订单 账户模块等等
-			log.info("matchTradeRlt:{}", matchTradeRlt);
+			log.info("matchTradeRlt:{}", matchTrade);
+			// todo 换成事件队列写
+			matchTradeService.saveTrade(matchTrade)
+							 .block();
 		}
 		// 2.5 末尾处理
 		if (remainingQty == 0) {
@@ -207,11 +223,6 @@ public final class MatchingEngine {
 		String symbol = orderInfo.getSymbol();
 		BaseOrderBook orderBook = orderBookMap.get(symbol);
 		orderBook.cancel(orderInfo);
-	}
-
-	public String dump() {
-		return orderBookMap.get("BTCUSDT")
-						   .dump();
 	}
 
 	public String snapshot() {

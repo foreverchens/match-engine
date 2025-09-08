@@ -59,7 +59,7 @@ public final class RecenterManager {
 	 * @return 实际执行的迁移步数
 	 */
 	public int checkAndRecenter() {
-		final double ratio = currentSkewPercent();
+		final double ratio = ring.getSlopeRate();
 		final double deviation = Math.abs(ratio - targetCenterPercent);
 		int planned = (int) Math.floor(deviation / stepPercent);
 		if (planned <= 0) {
@@ -97,16 +97,6 @@ public final class RecenterManager {
 		return done;
 	}
 
-	/**
-	 * 计算当前Bid区所占百分比
-	 */
-	double currentSkewPercent() {
-		final int mask = ring.getLength() - 1;
-		final int forward = (ring.getLastIdx() - ring.getLowIdx()) & mask;
-		return mask == 0
-			   ? 0.0
-			   : (forward * 100.0) / mask;
-	}
 
 	/**
 	 * 将被逐出的热档回灌冷区（忽略空档）。

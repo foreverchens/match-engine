@@ -4,7 +4,6 @@ package icu.match.core.model;/**
  * @date 2025/8/18
  */
 
-import icu.match.common.OrderEventType;
 import icu.match.common.OrderSide;
 import icu.match.common.OrderTif;
 import icu.match.common.OrderType;
@@ -26,8 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderInfo {
-
-	private OrderEventType orderEventType;
 
 	private long userId;
 

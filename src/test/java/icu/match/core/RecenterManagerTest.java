@@ -23,7 +23,7 @@ class RecenterManagerTest {
 
 		// 把 lastIdx 放到靠左：设置为 lowPrice（ratio≈0%）
 		ring.recordTradePrice(ring.getLowPrice());
-		double skew = mgr.currentSkewPercent();
+		double skew = mgr.getStepPercent();
 		assertTrue(skew >= 0.0 && skew <= 5.0, "skew should be near 0%");
 
 		// 偏离 50% 超过 20% ⇒ 计划 2 步；向右移动

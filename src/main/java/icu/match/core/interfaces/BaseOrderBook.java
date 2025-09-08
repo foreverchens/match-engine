@@ -7,7 +7,7 @@ package icu.match.core.interfaces;/**
 import icu.match.common.OrderSide;
 import icu.match.common.OrderStatus;
 import icu.match.core.model.BestLiqView;
-import icu.match.core.model.MatchTradeRlt;
+import icu.match.core.model.MatchTrade;
 import icu.match.core.model.OrderInfo;
 
 /**
@@ -25,7 +25,7 @@ public interface BaseOrderBook {
 	/**
 	 * 两个最小原子撮合函数 仅与最高优先级的head订单进行一次撮合
 	 */
-	MatchTradeRlt matchHead(OrderInfo order);
+	MatchTrade matchHead(OrderSide takerSide, long takerQty, long takerUserId, long takerOrderId);
 
 	/**
 	 * 判断限价单价格能否立即撮合
@@ -36,8 +36,6 @@ public interface BaseOrderBook {
 	boolean canMatchImmediately(OrderSide takerSide, long limitPrice);
 
 	OrderStatus submit(OrderInfo orderInfo);
-
-	String dump();
 
 	String snapshot();
 

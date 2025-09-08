@@ -26,7 +26,7 @@ public class DisruptorService {
 	}
 
 	public void publish(OrderEventType orderEventType, OrderInfo order) {
-		log.info("处理订单:{}", order);
+		log.info("deal order event:{}", order.getOrderId());
 		long seq = ringBuffer.next();
 		OrderEvent event = ringBuffer.get(seq);
 		event.setOrderEventType(orderEventType);

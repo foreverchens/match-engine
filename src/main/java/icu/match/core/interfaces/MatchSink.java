@@ -7,7 +7,6 @@ package icu.match.core.interfaces;/**
 
 import icu.match.core.OrderNode;
 import icu.match.core.model.MatchedTrade;
-import icu.match.service.match.model.Order;
 
 /**
  * @author 中本君
@@ -16,8 +15,6 @@ import icu.match.service.match.model.Order;
 public interface MatchSink {
 
 	void onTrade(MatchedTrade t);
-
-	void onOrderAccepted(Order o);
 
 	void onOrderRested(OrderNode o);
 
