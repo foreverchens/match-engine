@@ -193,11 +193,10 @@ public final class MatchingEngine {
 		// 2.4 对可撮合数量部分进行撮合
 		while (canMatchQty > 0) {
 			// 2.4.1 不断进行头节点撮合 同时更新可撮合数量
-			MatchTrade matchTrade = orderBook.matchHead(order.getSide(), order.getQty(), order.getUserId(),
+			MatchTrade matchTrade = orderBook.matchHead(order.getSide(), canMatchQty, order.getUserId(),
 														order.getOrderId());
 			long matchedQty = matchTrade.getQty();
 			canMatchQty -= matchedQty;
-			order.setQty(canMatchQty);
 			//　todo matchTradeRlt结果的发布 写wal日志 通知订单 账户模块等等
 			log.info("matchTradeRlt:{}", matchTrade);
 			// todo 换成事件队列写

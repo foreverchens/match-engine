@@ -31,20 +31,21 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 											 .getOrderId());
 		OrderEventType orderEventType = event.getOrderEventType();
 		OrderInfo orderInfo = event.getOrderInfo();
+		if (orderEventType == OrderEventType.NEW_ORDER) {
+			try {
+				OrderStatus rlt = matchEngine.submit(orderInfo);
+				log.info(rlt.toString());
+			} finally {
+				MonoSinkManage.getSink(orderInfo.getOrderId())
+							  .success(new OrderResult());
+			}
+			return;
+		}
 		switch (orderEventType) {
-			case NEW_ORDER:
-				try {
-					OrderStatus rlt = matchEngine.submit(orderInfo);
-					log.info(rlt.toString());
-				} catch (Exception e) {
-					e.printStackTrace();
-				} finally {
-					MonoSinkManage.getSink(orderInfo.getOrderId())
-								  .success(new OrderResult());
-				}
-				break;
 			case CANCEL_ORDER:
 				matchEngine.cancel(orderInfo);
+				break;
+			case MODIFY_ORDER:
 				break;
 			default:
 				throw new IllegalArgumentException("Unsupported event type: " + orderEventType);

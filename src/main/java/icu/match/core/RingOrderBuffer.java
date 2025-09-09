@@ -509,20 +509,20 @@ public final class RingOrderBuffer {
 	 */
 	public String snapshot() {
 
-		Map<String, String> bids = new HashMap<String, String>();
-		Map<String, String> asks = new HashMap<String, String>();
+		Map<String, Long> bids = new HashMap<>();
+		Map<String, Long> asks = new HashMap<>();
 
-		for (int i = lowIdx; i < highIdx; i = getRightIdx(i)) {
+		for (int i = lowIdx; i != highIdx; i = getRightIdx(i)) {
 			PriceLevel lvl = levels[i];
 			if (lvl.isEmpty()) {
 				continue;
 			}
 			long price = lvl.getPrice();
-			String snapshot = String.valueOf(lvl.totalQty());
+			long qty = lvl.totalQty();
 			if (lvl.isAsk()) {
-				asks.put(String.valueOf(price), snapshot);
+				asks.put(String.valueOf(price), qty);
 			} else {
-				bids.put(String.valueOf(price), snapshot);
+				bids.put(String.valueOf(price), qty);
 			}
 		}
 		return JSON.toJSONString(Arrays.asList(bids, asks));
