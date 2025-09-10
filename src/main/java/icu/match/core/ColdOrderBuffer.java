@@ -77,8 +77,7 @@ public class ColdOrderBuffer {
 			if (prev != null) {
 				throw new IllegalStateException("ASK level already exists at price=" + price);
 			}
-		}
-		else {
+		} else {
 			PriceLevel prev = bids.put(price, level);
 			if (prev != null) {
 				throw new IllegalStateException("BID level already exists at price=" + price);
@@ -93,16 +92,17 @@ public class ColdOrderBuffer {
 	/**
 	 * 冷区撤单：按方向与价格定位到价位桶后撤单；若价位桶转空则从树中移除。
 	 */
-	public OrderNode cancel(long price, long orderId, boolean ask) {
-		PriceLevel lvl = (ask
-						  ? asks.get(price)
-						  : bids.get(price));
+	public OrderNode cancel(long price, long orderId) {
+		PriceLevel lvl = asks.get(price);
+		if (lvl == null) {
+			lvl = bids.get(price);
+		}
 		if (lvl == null) {
 			return null;
 		}
 		OrderNode n = lvl.cancel(orderId);
 		if (n != null && lvl.isEmpty()) {
-			removeLevel(price, ask);
+			removeLevel(price, n.ask);
 		}
 		return n;
 	}
@@ -111,8 +111,7 @@ public class ColdOrderBuffer {
 	private void removeLevel(long price, boolean ask) {
 		if (ask) {
 			asks.remove(price);
-		}
-		else {
+		} else {
 			bids.remove(price);
 		}
 	}
@@ -124,16 +123,17 @@ public class ColdOrderBuffer {
 	/**
 	 * 冷区完全成交删除：与 {@link #cancel} 一致，语义区分。
 	 */
-	public OrderNode remove(long price, long orderId, boolean ask) {
-		PriceLevel lvl = (ask
-						  ? asks.get(price)
-						  : bids.get(price));
+	public OrderNode remove(long price, long orderId) {
+		PriceLevel lvl = asks.get(price);
+		if (lvl == null) {
+			lvl = bids.get(price);
+		}
 		if (lvl == null) {
 			return null;
 		}
 		OrderNode n = lvl.remove(orderId);
 		if (n != null && lvl.isEmpty()) {
-			removeLevel(price, ask);
+			removeLevel(price, n.ask);
 		}
 		return n;
 	}

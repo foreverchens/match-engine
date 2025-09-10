@@ -44,7 +44,7 @@ class ColdOrderBufferTest {
 		assertEquals(105, pa.getPrice());
 
 		// 撤单（剩余的 98 档）
-		OrderNode canceled = cold.cancel(98, 402, false);
+		OrderNode canceled = cold.cancel(98, 402);
 		assertNotNull(canceled);
 		pool.free(canceled);
 

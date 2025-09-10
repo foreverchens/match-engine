@@ -47,7 +47,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 			}
 			switch (orderEventType) {
 				case CANCEL_ORDER:
-					matchEngine.cancel(orderInfo);
+					matchEngine.cancel(orderInfo.getSymbol(), orderInfo.getPrice(), orderInfo.getOrderId());
 					break;
 				case MODIFY_ORDER:
 					break;

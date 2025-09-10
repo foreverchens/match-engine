@@ -10,7 +10,7 @@ import icu.match.core.ColdOrderBuffer;
 import icu.match.core.RingOrderBuffer;
 import icu.match.core.SimpleOrderBook;
 import icu.match.core.interfaces.BaseOrderBook;
-import icu.match.core.interfaces.MatchSink;
+import icu.match.core.interfaces.MatchEventProcessor;
 import icu.match.core.model.BestLiqView;
 import icu.match.core.model.MatchTrade;
 import icu.match.core.model.OrderInfo;
@@ -43,7 +43,7 @@ public final class MatchingEngine {
 	private final Map<String, BaseOrderBook> orderBookMap;
 
 	@Resource
-	private MatchSink matchSink;
+	private MatchEventProcessor matchEventProcess;
 
 	public MatchingEngine() {
 		orderBookMap = new HashMap<>();
@@ -56,6 +56,11 @@ public final class MatchingEngine {
 		ColdOrderBuffer cold = new ColdOrderBuffer();
 		SimpleOrderBook orderBook = new SimpleOrderBook(ring, cold);
 		orderBookMap.put(symbol, orderBook);
+		init(symbol, orderBook);
+
+	}
+
+	private static void init(String symbol, SimpleOrderBook orderBook) {
 		OrderInfo.OrderInfoBuilder builder = OrderInfo.builder();
 		builder.symbol(symbol);
 		builder.userId(1000);
@@ -90,7 +95,6 @@ public final class MatchingEngine {
 		builder.price(108);
 		builder.orderId(2003);
 		orderBook.submit(builder.build());
-
 	}
 
 
@@ -124,25 +128,23 @@ public final class MatchingEngine {
 			}
 			long totalMatchedQty = 0;
 			while (totalMatchedQty < bestLiqView.getTotalQty()) {
-				MatchTrade matchTrade = orderBook.matchHead(order.getSide(), order.getQty(), order.getUserId(),
-															order.getOrderId());
+				MatchTrade matchTrade = orderBook.matchHead(order.getSide(), remainingQty);
 				long matchedQty = matchTrade.getQty();
 				remainingQty -= matchedQty;
 				totalMatchedQty += matchedQty;
-				order.setQty(remainingQty);
 
 				// 成交事件
-				matchSink.onTraded(matchTrade);
-
+				matchTrade.setTakerUserId(order.getUserId());
+				matchTrade.setTakerOrderId(order.getOrderId());
+				matchEventProcess.onTraded(matchTrade);
 				if (remainingQty == 0) {
 					break;
 				}
 			}
 		}
 		if (remainingQty > 0) {
-			// 未完全市价撮合 走IOC策略 自动取消
-			// matchSink.onOrderCancelled();
-			log.info("remaining:{}", remainingQty);
+			// 流动性不足或市价保护等原因 未完全市价撮合  走IOC策略 自动取消
+			matchEventProcess.onOrderCancelled(symbol, order.getOrderId(), remainingQty);
 			return OrderStatus.PARTIALLY_FILLED;
 		}
 		return OrderStatus.FILLED;
@@ -175,10 +177,11 @@ public final class MatchingEngine {
 		// 2.能立即限价撮合
 		// 2.1 如果是FOK检查能否立即完全成交
 		long takerQty = order.getQty();
-		if (OrderTif.FOK.equals(order.getTif())) {
+		if (OrderTif.FOK == order.getTif()) {
 			BestLiqView bestLiq = orderBook.bestLiq(takerSide, takerPrice);
 			if (bestLiq.getTotalQty() < takerQty) {
-				// 不能完全成交
+				// 不能完全成交 拒单
+				matchEventProcess.onOrderRejected(order.getSymbol(), order.getOrderId());
 				return OrderStatus.REJECTED;
 			}
 		}
@@ -191,32 +194,36 @@ public final class MatchingEngine {
 		// 2.4 对可撮合数量部分进行撮合
 		while (canMatchQty > 0) {
 			// 2.4.1 不断进行头节点撮合 同时更新可撮合数量
-			MatchTrade matchTrade = orderBook.matchHead(order.getSide(), canMatchQty, order.getUserId(),
-														order.getOrderId());
+			MatchTrade matchTrade = orderBook.matchHead(order.getSide(), canMatchQty);
 			long matchedQty = matchTrade.getQty();
 			canMatchQty -= matchedQty;
 			// 成交事件
-			matchSink.onTraded(matchTrade);
+			matchTrade.setTakerUserId(order.getUserId());
+			matchTrade.setTakerOrderId(order.getOrderId());
+			matchEventProcess.onTraded(matchTrade);
 		}
 		// 2.5 末尾处理
 		if (remainingQty == 0) {
-			// 完全撮合 FOK策略订单肯定已经完全撮合
+			// 完全撮合 FOK策略订单肯定完全撮合
 			return OrderStatus.FILLED;
 		}
 		// 未完全撮合
-		if (OrderTif.GTC.equals(tif)) {
+		if (OrderTif.GTC == tif) {
 			order.setQty(remainingQty);
 			return orderBook.submit(order);
 		} else {
 			// IOC策略
+			matchEventProcess.onOrderCancelled(symbol, order.getOrderId(), remainingQty);
 			return OrderStatus.CANCELED;
 		}
 	}
 
-	public void cancel(OrderInfo orderInfo) {
-		String symbol = orderInfo.getSymbol();
+	public void cancel(String symbol, long price, long orderId) {
 		BaseOrderBook orderBook = orderBookMap.get(symbol);
-		orderBook.cancel(orderInfo);
+		boolean rlt = orderBook.cancel(price, orderId);
+		if (rlt) {
+			matchEventProcess.onOrderCancelled(symbol, orderId, 0);
+		}
 	}
 
 	public String snapshot() {

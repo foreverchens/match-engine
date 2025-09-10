@@ -20,12 +20,15 @@ public interface BaseOrderBook {
 	 */
 	BestLiqView bestLiq(OrderSide takerSide);
 
+	/**
+	 * 获取能与limitPrice价格撮合的流动性视图
+	 */
 	BestLiqView bestLiq(OrderSide takerSide, long limitPrice);
 
 	/**
-	 * 两个最小原子撮合函数 仅与最高优先级的head订单进行一次撮合
+	 * 最小原子撮合函数 仅与最高优先级的head订单进行一次撮合
 	 */
-	MatchTrade matchHead(OrderSide takerSide, long takerQty, long takerUserId, long takerOrderId);
+	MatchTrade matchHead(OrderSide takerSide, long takerQty);
 
 	/**
 	 * 判断限价单价格能否立即撮合
@@ -37,7 +40,8 @@ public interface BaseOrderBook {
 
 	OrderStatus submit(OrderInfo orderInfo);
 
+	boolean cancel(long price, long orderId);
+
 	String snapshot();
 
-	void cancel(OrderInfo orderInfo);
 }

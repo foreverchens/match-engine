@@ -23,9 +23,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OriginOrder {
 
-	private Long userId;
+	private long userId;
 
-	private Long orderId;
+	private long orderId;
 
 	private String symbol;
 
