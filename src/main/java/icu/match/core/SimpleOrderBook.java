@@ -91,6 +91,8 @@ public class SimpleOrderBook implements BaseOrderBook {
 			// makerOrder 完全成交 takerOrder部分成交
 			// 将makerOrder从订单簿移除
 			ring.remove(bestPriceLevel.getPrice(), makerOrder.orderId);
+			// marker被完全吃单后。如果价格当前整个流动性为空 需要检查窗口偏移情况
+			recenter.checkAndRecenter();
 		} else {
 			// makerOrder 部分成交 takerOrder完全成交
 			// 更新 makerOrder qty

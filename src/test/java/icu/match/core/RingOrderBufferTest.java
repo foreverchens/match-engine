@@ -56,7 +56,7 @@ class RingOrderBufferTest {
 	}
 
 	@Test
-	void migrateToIncludeMultiStepLeftAndRight() {
+	void migrateMultiStepLeftAndRight() {
 		RingOrderBuffer ring = new RingOrderBuffer("ETHUSDT", 1, 100, 107);
 		// 初始：low=100, high=107
 		long low0 = ring.getLowPrice();
@@ -64,7 +64,7 @@ class RingOrderBufferTest {
 
 		// 向左：引入 98，需要 k=2 步
 		PriceLevel coldBid98 = new PriceLevel(98);
-		List<PriceLevel> ev1 = ring.migrateToInclude(coldBid98);
+		List<PriceLevel> ev1 = ring.migrate(coldBid98);
 		assertEquals(2, ev1.size());
 		assertEquals(98, ring.getLowPrice());
 		assertEquals(high0 - 2, ring.getHighPrice());
@@ -74,7 +74,7 @@ class RingOrderBufferTest {
 		// 向右：引入 110，需要 k=（110 - 105）=5 步
 		// 现 high=105，low=98
 		PriceLevel coldAsk110 = new PriceLevel(110);
-		List<PriceLevel> ev2 = ring.migrateToInclude(coldAsk110);
+		List<PriceLevel> ev2 = ring.migrate(coldAsk110);
 		assertEquals(5, ev2.size());
 		assertEquals(103, ring.getLowPrice());
 		assertEquals(110, ring.getHighPrice());

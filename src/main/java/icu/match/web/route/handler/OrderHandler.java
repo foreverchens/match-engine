@@ -118,7 +118,7 @@ public class OrderHandler {
 												 return insert.flatMap(n -> {
 													 this.publish(symbol, userId, orderId, side, type, tif, price,
 																  qty);
-													 // todo 如果需要同步返回 需要注册钩子
+													 // todo 如需同步返回 需注册钩子
 													 return ServerResponse.status(202)
 																		  .contentType(MediaType.APPLICATION_JSON)
 																		  .bodyValue(Map.of("ok", true));
