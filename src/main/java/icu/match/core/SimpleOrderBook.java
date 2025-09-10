@@ -78,7 +78,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 	}
 
 	@Override
-	public MatchTrade matchHead(OrderSide takerSide, long takerQty, long takerUserId, long takerOrderId) {
+	public MatchTrade matchHead(OrderSide takerSide, long takerQty) {
 		PriceLevel bestPriceLevel = ring.getBestLevel(takerSide);
 		if (bestPriceLevel == null) {
 			throw new IllegalArgumentException("bestPriceLevel must not be null");
@@ -96,7 +96,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 			// 更新 makerOrder qty
 			ring.patchQty(bestPriceLevel.getPrice(), makerOrder.orderId, makerOrder.qty - matchQty);
 		}
-		return matchTrade.fill(symbol, takerUserId, makerOrder.userId, takerOrderId, makerOrder.orderId, takerSide,
+		return matchTrade.fill(symbol, 0, makerOrder.userId, 0, makerOrder.orderId, takerSide,
 							   bestPriceLevel.getPrice(), matchQty);
 	}
 
@@ -122,15 +122,14 @@ public class SimpleOrderBook implements BaseOrderBook {
 	}
 
 	@Override
-	public void cancel(OrderInfo orderInfo) {
-		long price = orderInfo.getPrice();
-		long orderId = orderInfo.getOrderId();
+	public boolean cancel(long price, long orderId) {
+		OrderNode cancel;
 		if (ring.isWindow(price)) {
-			ring.cancel(price, orderId);
+			cancel = ring.cancel(price, orderId);
 		} else {
-			cold.cancel(price, orderId, orderInfo.getSide()
-												 .isAsk());
+			cancel = cold.cancel(price, orderId);
 		}
+		return cancel != null;
 	}
 
 	public String snapshot() {

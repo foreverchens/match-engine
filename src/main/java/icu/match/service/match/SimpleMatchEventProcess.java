@@ -9,8 +9,7 @@ import com.lmax.disruptor.RingBuffer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
-import icu.match.core.OrderNode;
-import icu.match.core.interfaces.MatchSink;
+import icu.match.core.interfaces.MatchEventProcessor;
 import icu.match.core.model.MatchTrade;
 import icu.match.service.disruptor.trade.TradeEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +22,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Component
-public class SimpleMatchSink implements MatchSink {
+public class SimpleMatchEventProcess implements MatchEventProcessor {
 
 	@Resource
 	private RingBuffer<TradeEvent> tradeEventRingBuffer;
@@ -41,18 +40,23 @@ public class SimpleMatchSink implements MatchSink {
 		tradeEventRingBuffer.publish(next);
 	}
 
+	/**
+	 *  撤单
+	 *  订单模块 改状态
+	 *  账户模块 释放余额
+	 */
 	@Override
-	public void onOrderRested(OrderNode o) {
-
+	public void onOrderCancelled(String symbol, long orderId, long qty) {
+		log.info("onOrderCancelled symbol :{} orderId :{}  qty :{}", symbol, orderId, qty);
 	}
 
+	/**
+	 * 据单
+	 *  订单模块 改状态
+	 *  账户模块 释放余额
+	 */
 	@Override
-	public void onOrderCancelled(long orderId, String reason) {
-
-	}
-
-	@Override
-	public void onOrderRejected(OrderNode o, String reason) {
-
+	public void onOrderRejected(String symbol, long orderId) {
+		log.info("onOrderRejected symbol :{} orderId :{}", symbol, orderId);
 	}
 }

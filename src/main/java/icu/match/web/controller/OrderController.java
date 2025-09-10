@@ -41,6 +41,12 @@ public class OrderController {
 		return orderMono.flatMap(order -> orderService.submit(order));
 	}
 
+	@PostMapping("/cancel")
+	@Operation(summary = "撤单", description = "撤单 基于symbol orderId price")
+	public Mono<Void> cancel(@RequestBody Mono<OriginOrder> orderMono) {
+		return orderMono.flatMap(order -> orderService.cancel(order));
+	}
+
 
 	@GetMapping("/trades")
 	@Operation(summary = "成交列表", description = "撮合成交列表")

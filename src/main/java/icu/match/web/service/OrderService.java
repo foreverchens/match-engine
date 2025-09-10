@@ -41,7 +41,7 @@ public class OrderService {
 								  MonoSinkManage.put(savedOrder.getOrderId(), sink);
 
 								  // 提交到撮合队列
-								  this.publish(savedOrder);
+								  this.publish(OrderEventType.NEW_ORDER, savedOrder);
 
 								  // 可选：增加超时清理，避免永远挂起
 								  sink.onCancel(() -> MonoSinkManage.remove(savedOrder.getOrderId()));
@@ -50,15 +50,21 @@ public class OrderService {
 							  .doOnError(e -> log.error("订单提交失败", e));
 	}
 
-	private void publish(OriginOrder originOrder) {
+	private void publish(OrderEventType eventType, OriginOrder originOrder) {
 		log.info("publish orderId :{}", originOrder.getOrderId());
 
 		long seq = ringBuffer.next();
 		OrderEvent event = ringBuffer.get(seq);
 
-		event.setOrderEventType(OrderEventType.NEW_ORDER);
+		event.setOrderEventType(eventType);
 		OrderInfo orderInfo = event.getOrderInfo();
 		BeanUtils.copyProperties(originOrder, orderInfo);
 		ringBuffer.publish(seq);
 	}
+
+	public Mono<Void> cancel(OriginOrder order) {
+		this.publish(OrderEventType.CANCEL_ORDER, order);
+		return Mono.empty();
+	}
+
 }
