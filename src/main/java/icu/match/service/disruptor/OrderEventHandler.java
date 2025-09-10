@@ -11,6 +11,7 @@ import icu.match.service.global.MonoSinkManage;
 import icu.match.service.match.MatchingEngine;
 import icu.match.web.model.OrderResult;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.MonoSink;
 
 import javax.annotation.Resource;
 
@@ -36,8 +37,10 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 				OrderStatus rlt = matchEngine.submit(orderInfo);
 				log.info(rlt.toString());
 			} finally {
-				MonoSinkManage.getSink(orderInfo.getOrderId())
-							  .success(new OrderResult());
+				MonoSink<OrderResult> sink = MonoSinkManage.getSink(orderInfo.getOrderId());
+				if (sink != null) {
+					sink.success(new OrderResult());
+				}
 			}
 			return;
 		}

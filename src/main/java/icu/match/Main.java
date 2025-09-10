@@ -28,11 +28,6 @@ public class Main {
 		log.info("-------------suc-------------");
 		log.info("api doc  : http://localhost:8080/webjars/swagger-ui/index.html");
 		log.info("homepage : http://localhost:8080/trade.html");
-		// Flux.interval(Duration.ofSeconds(1))
-		// 	.map(e -> "" + e)
-		// 	.doOnNext(log::info)
-		// 	.subscribe();
-
 	}
 
 

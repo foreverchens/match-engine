@@ -19,6 +19,8 @@ public class DisruptorConfig {
 	public Disruptor<OrderEvent> disruptor(@Autowired OrderEventHandler orderEventHandler) {
 		Disruptor<OrderEvent> disruptor = new Disruptor<>(new OrderEventFactory(), 1024,
 														  Executors.defaultThreadFactory());
+		Runtime.getRuntime()
+			   .addShutdownHook(new Thread(disruptor::shutdown));
 		disruptor.handleEventsWith(orderEventHandler);
 		disruptor.start();
 		return disruptor;

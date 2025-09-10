@@ -278,7 +278,7 @@
             </div>
         </div>
         <div class="panel-body">
-            <div id="kline">K 线占位（可接入 TradingView / Lightweight Charts / ECharts）</div>
+            <div id="kline">K 线占位</div>
         </div>
 
         <div class="panel-header">
@@ -356,26 +356,28 @@
 </div>
 
 <script>
-    // ===== Depth WS (适配新页面) =====
+
+    /** -----------------------
+     *  Depth WebSocket
+     *  ----------------------*/
     const DEPTH_URL = "ws://localhost:8080/ws/depth";
     const TOP_N = 20;                           // 只展示前 N 档
     const fmt = (n, d = 2) => Number(n).toLocaleString(
         undefined, {minimumFractionDigits: d, maximumFractionDigits: d}
     );
-
     let depthSocket, retry = 0;
 
+    // socket链接与数据渲染
     function connectDepth() {
         depthSocket = new WebSocket(DEPTH_URL);
 
         depthSocket.onopen = () => {
-            retry = 0; /* console.log('depth ws open'); */
+            retry = 0;
         };
 
         depthSocket.onmessage = (e) => {
             // 服务端： [bidsMap, asksMap]
             const arr = JSON.parse(e.data);
-            console.log(arr)
             const bidsMap = arr[0] || {};
             const asksMap = arr[1] || {};
 
@@ -388,12 +390,12 @@
                 .filter(r => r.qty > 0);
 
             // 排序：买盘降序（从最优买价开始），卖盘升序（从最优卖价开始）
-            bids.sort((a, b) => b.price - a.price);
-            asks.sort((a, b) => b.price - a.price);
-
-            // 只取 Top N
-            renderBook("#bids", bids.slice(0, TOP_N), /*isAsk=*/false);
-            renderBook("#asks", asks.slice(0, TOP_N), /*isAsk=*/true);
+            let cum = 0;
+            bids.sort((a, b) => b.price - a.price).slice(0, TOP_N).forEach(r => r._cum = (cum += r.qty));
+            cum = 0;
+            asks.sort((a, b) => b.price - a.price).slice(0, TOP_N).reverse().forEach(r => r._cum = (cum += r.qty));
+            renderBook("#bids", bids, /*isAsk=*/false);
+            renderBook("#asks", asks, /*isAsk=*/true);
         };
 
         depthSocket.onclose = () => {
@@ -415,16 +417,13 @@
         if (!tbody) return;
 
         tbody.innerHTML = "";
-        let cum = 0;
-
-        rows.forEach(({price, qty}) => {
-            cum += qty;
+        rows.forEach(({price, qty, _cum}) => {
             const tr = document.createElement("tr");
             tr.className = isAsk ? "row-sell" : "row-buy";
             tr.innerHTML = `
       <td class="price">${fmt(price, 2)}</td>
       <td class="qty">${fmt(qty, 4)}</td>
-      <td class="qty mono">${fmt(cum, 4)}</td>
+      <td class="qty mono">${fmt(_cum, 4)}</td>
     `;
             tbody.appendChild(tr);
         });
@@ -437,6 +436,7 @@
     /** -----------------------
      *  Order form (提交到后端)
      *  ----------------------*/
+    // 下单函数 与事件绑定
     async function submitOrder(side) {
         const type = document.getElementById('type').value;
         const tif = document.getElementById('tif').value;
@@ -460,6 +460,7 @@
         };
 
         try {
+            // 字节流传输下单接口 http://localhost:8080/api/order.bin
             const res = await fetch("http://localhost:8080/api/order", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
@@ -470,7 +471,7 @@
                 throw new Error(txt || "下单失败");
             }
 
-            const data = await res.json().catch(() => ({}));
+            await res.json().catch(() => ({}));
             alert("下单成功 ✅\n订单号: " + order.orderId);
             document.getElementById('orderForm').reset();
 
@@ -485,8 +486,9 @@
     document.getElementById('btnBuy').addEventListener('click', () => submitOrder('BID'));
     document.getElementById('btnSell').addEventListener('click', () => submitOrder('ASK'));
 
+
     /** -----------------------
-     *  trades
+     *  trades 历史
      *  ----------------------*/
     async function loadTrades() {
         try {
@@ -523,7 +525,7 @@
     setInterval(loadTrades, 5000);
 
 
-    // TODO: K线：可在此接入 TradingView / Lightweight Charts / ECharts
+    //todo K线获取
 </script>
 </body>
 </html>

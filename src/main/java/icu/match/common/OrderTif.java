@@ -10,5 +10,12 @@ package icu.match.common;/**
  */
 public enum OrderTif {
 
-	GTC, IOC, FOK
+	GTC, IOC, FOK;
+
+	private static final OrderTif[] VALS = new OrderTif[]{GTC, IOC, FOK};
+
+
+	public static OrderTif get(int idx) {
+		return VALS[idx];
+	}
 }
