@@ -34,7 +34,7 @@ public class OrderInfo {
 
 	private OrderSide side;
 
-	private OrderType orderType;
+	private OrderType type;
 
 	private OrderTif tif;
 

@@ -35,7 +35,7 @@ public class OriginOrder {
 
 	private OrderTif tif;
 
-	private long origQty;
+	private long qty;
 
 	private long price;
 

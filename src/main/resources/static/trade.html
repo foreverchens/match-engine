@@ -456,7 +456,7 @@
             tif: tif,         // GTC / IOC / FOK
             side: side,       // BID / ASK
             price: type === 'MARKET' ? 0 : price,
-            origQty: qty
+            qty: qty
         };
 
         try {
@@ -473,7 +473,7 @@
 
             await res.json().catch(() => ({}));
             alert("下单成功 ✅\n订单号: " + order.orderId);
-            document.getElementById('orderForm').reset();
+            // document.getElementById('orderForm').reset();
 
             // 可选：把订单当作成交推送到前端演示
             // pushTrade({time: Date.now(), price: price || 0, qty, side});

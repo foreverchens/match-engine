@@ -1,10 +1,14 @@
 package icu.match.web.service;
 
+import com.lmax.disruptor.RingBuffer;
+
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import icu.match.service.disruptor.DisruptorService;
+import icu.match.common.OrderEventType;
+import icu.match.core.model.OrderInfo;
+import icu.match.service.disruptor.order.OrderEvent;
 import icu.match.service.global.MonoSinkManage;
-import icu.match.util.ModelUtil;
 import icu.match.web.model.OrderResult;
 import icu.match.web.model.OriginOrder;
 import icu.match.web.repo.OrderRepository;
@@ -21,14 +25,15 @@ import javax.annotation.Resource;
 @Service
 public class OrderService {
 
-	@Resource
-	private DisruptorService disruptorService;
 
 	@Resource
 	private OrderRepository orderRepository;
 
+	@Resource
+	private RingBuffer<OrderEvent> ringBuffer;
+
 	public Mono<OrderResult> submit(OriginOrder originOrder) {
-		log.info("原始订单:{}", originOrder);
+		log.info("received orderId :{}", originOrder.getOrderId());
 
 		return orderRepository.save(originOrder)
 							  .flatMap(savedOrder -> Mono.<OrderResult>create(sink -> {
@@ -36,7 +41,7 @@ public class OrderService {
 								  MonoSinkManage.put(savedOrder.getOrderId(), sink);
 
 								  // 提交到撮合队列
-								  disruptorService.publish(ModelUtil.originOrderToOrder(savedOrder));
+								  this.publish(savedOrder);
 
 								  // 可选：增加超时清理，避免永远挂起
 								  sink.onCancel(() -> MonoSinkManage.remove(savedOrder.getOrderId()));
@@ -45,5 +50,15 @@ public class OrderService {
 							  .doOnError(e -> log.error("订单提交失败", e));
 	}
 
+	private void publish(OriginOrder originOrder) {
+		log.info("publish orderId :{}", originOrder.getOrderId());
 
+		long seq = ringBuffer.next();
+		OrderEvent event = ringBuffer.get(seq);
+
+		event.setOrderEventType(OrderEventType.NEW_ORDER);
+		OrderInfo orderInfo = event.getOrderInfo();
+		BeanUtils.copyProperties(originOrder, orderInfo);
+		ringBuffer.publish(seq);
+	}
 }

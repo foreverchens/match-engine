@@ -4,6 +4,8 @@ package icu.match.web.route.handler;/**
  * @date 2025/9/9
  */
 
+import com.lmax.disruptor.RingBuffer;
+
 import org.springframework.core.codec.DecodingException;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
@@ -14,14 +16,16 @@ import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import icu.match.common.OrderEventType;
 import icu.match.common.OrderSide;
 import icu.match.common.OrderTif;
 import icu.match.common.OrderType;
 import icu.match.core.model.OrderInfo;
-import icu.match.service.disruptor.DisruptorService;
+import icu.match.service.disruptor.order.OrderEvent;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.util.ReferenceCountUtil;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
@@ -32,6 +36,7 @@ import java.util.Map;
  * @author 中本君
  * @date 2025/9/9 
  */
+@Slf4j
 @Component
 public class OrderHandler {
 
@@ -42,7 +47,7 @@ public class OrderHandler {
 	private DatabaseClient db;
 
 	@Resource
-	private DisruptorService disruptorService;
+	private RingBuffer<OrderEvent> ringBuffer;
 
 
 	public Mono<ServerResponse> placeOrder(ServerRequest req) {
@@ -111,18 +116,8 @@ public class OrderHandler {
 																		  .fetch()
 																		  .rowsUpdated();
 												 return insert.flatMap(n -> {
-													 // todo orderInfo 需要池化
-													 OrderInfo.OrderInfoBuilder builder = OrderInfo.builder();
-													 OrderInfo orderInfo = builder.userId(userId)
-																				  .orderId(orderId)
-																				  // todo 可直接传输byte而不是枚举 性能提高但可读性降低
-																				  .side(OrderSide.get(side))
-																				  .orderType(OrderType.get(type))
-																				  .tif(OrderTif.get(tif))
-																				  .price(price)
-																				  .qty(qty)
-																				  .build();
-													 disruptorService.publish(orderInfo);
+													 this.publish(symbol, userId, orderId, side, type, tif, price,
+																  qty);
 													 // todo 如果需要同步返回 需要注册钩子
 													 return ServerResponse.status(202)
 																		  .contentType(MediaType.APPLICATION_JSON)
@@ -135,5 +130,26 @@ public class OrderHandler {
 																						 .bodyValue(Map.of("ok", false,
 																										   "error",
 																										   "bad_req")));
+	}
+
+	private void publish(int symbol, long userId, long orderId, byte side, byte type, byte tif, long price, long qty) {
+		log.info("publish orderId :{}", orderId);
+
+		long seq = ringBuffer.next();
+		OrderEvent event = ringBuffer.get(seq);
+
+		event.setOrderEventType(OrderEventType.NEW_ORDER);
+
+		OrderInfo orderInfo = event.getOrderInfo();
+		orderInfo.setOrderId(orderId);
+		orderInfo.setUserId(userId);
+		// todo 可直接传输byte而不是枚举 性能提高但可读性降低
+		orderInfo.setSide(OrderSide.get(side));
+		orderInfo.setType(OrderType.get(type));
+		orderInfo.setTif(OrderTif.get(tif));
+		orderInfo.setPrice(price);
+		orderInfo.setQty(qty);
+		orderInfo.setSymbol("BTCUSDT");
+		ringBuffer.publish(seq);
 	}
 }

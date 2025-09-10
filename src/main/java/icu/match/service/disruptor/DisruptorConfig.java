@@ -1,13 +1,14 @@
 package icu.match.service.disruptor;
 
 import com.lmax.disruptor.RingBuffer;
-import com.lmax.disruptor.dsl.Disruptor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.concurrent.Executors;
+import icu.match.service.disruptor.order.OrderEvent;
+import icu.match.service.disruptor.order.OrderEventDisruptorProvider;
+import icu.match.service.disruptor.trade.TradeEvent;
+import icu.match.service.disruptor.trade.TradeEventDisruptorProvider;
 
 /**
  * @author 中本君
@@ -15,20 +16,15 @@ import java.util.concurrent.Executors;
  */
 @Configuration
 public class DisruptorConfig {
-	@Bean
-	public Disruptor<OrderEvent> disruptor(@Autowired OrderEventHandler orderEventHandler) {
-		Disruptor<OrderEvent> disruptor = new Disruptor<>(new OrderEventFactory(), 1024,
-														  Executors.defaultThreadFactory());
-		Runtime.getRuntime()
-			   .addShutdownHook(new Thread(disruptor::shutdown));
-		disruptor.handleEventsWith(orderEventHandler);
-		disruptor.start();
-		return disruptor;
-	}
 
 	@Bean
-	public RingBuffer<OrderEvent> ringBuffer(Disruptor<OrderEvent> disruptor) {
-		return disruptor.getRingBuffer();
+	public RingBuffer<OrderEvent> orderEventRingBuffer(OrderEventDisruptorProvider provider) {
+		return provider.ringBuffer();
 	}
 
+
+	@Bean
+	public RingBuffer<TradeEvent> tradeEventRingBuffer(TradeEventDisruptorProvider provider) {
+		return provider.ringBuffer();
+	}
 }

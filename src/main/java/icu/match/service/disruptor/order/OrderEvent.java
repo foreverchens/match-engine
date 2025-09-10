@@ -1,4 +1,4 @@
-package icu.match.service.disruptor;
+package icu.match.service.disruptor.order;
 
 import icu.match.common.OrderEventType;
 import icu.match.core.model.OrderInfo;
@@ -25,7 +25,9 @@ public class OrderEvent {
 
 
 	public void reset() {
-		log.info("reset OrderInfo");
+		orderEventType = OrderEventType.NEW_ORDER;
+		orderInfo.setSymbol(null);
+		orderInfo.setOrderId(0);
 	}
 
 }

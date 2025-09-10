@@ -37,7 +37,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 	 */
 	private final BestLiqView bestLiqView = new BestLiqView();
 
-	// todo 单对象复用 后续修改为disruptor
+	// 单例对象 数据获取时需要先复制
 	private final MatchTrade matchTrade = new MatchTrade();
 
 	public SimpleOrderBook(RingOrderBuffer ring, ColdOrderBuffer cold) {

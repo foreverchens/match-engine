@@ -14,7 +14,6 @@ import icu.match.core.interfaces.MatchSink;
 import icu.match.core.model.BestLiqView;
 import icu.match.core.model.MatchTrade;
 import icu.match.core.model.OrderInfo;
-import icu.match.web.service.MatchTradeService;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
@@ -43,10 +42,8 @@ public final class MatchingEngine {
 
 	private final Map<String, BaseOrderBook> orderBookMap;
 
-	private MatchSink matchSink;
-
 	@Resource
-	private MatchTradeService matchTradeService;
+	private MatchSink matchSink;
 
 	public MatchingEngine() {
 		orderBookMap = new HashMap<>();
@@ -98,7 +95,7 @@ public final class MatchingEngine {
 
 
 	public OrderStatus submit(OrderInfo order) {
-		OrderType orderType = order.getOrderType();
+		OrderType orderType = order.getType();
 		if (orderType.isMarket()) {
 			// 处理市价单
 			return dealMarketOrder(order);
@@ -133,9 +130,10 @@ public final class MatchingEngine {
 				remainingQty -= matchedQty;
 				totalMatchedQty += matchedQty;
 				order.setQty(remainingQty);
-				//　todo matchTradeRlt结果的发布 写wal日志 通知订单 账户模块等等
-				matchTradeService.saveTrade(matchTrade)
-								 .block();
+
+				// 成交事件
+				matchSink.onTraded(matchTrade);
+
 				if (remainingQty == 0) {
 					break;
 				}
@@ -197,11 +195,8 @@ public final class MatchingEngine {
 														order.getOrderId());
 			long matchedQty = matchTrade.getQty();
 			canMatchQty -= matchedQty;
-			//　todo matchTradeRlt结果的发布 写wal日志 通知订单 账户模块等等
-			log.info("matchTradeRlt:{}", matchTrade);
-			// todo 换成事件队列写
-			matchTradeService.saveTrade(matchTrade)
-							 .block();
+			// 成交事件
+			matchSink.onTraded(matchTrade);
 		}
 		// 2.5 末尾处理
 		if (remainingQty == 0) {
