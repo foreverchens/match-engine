@@ -46,7 +46,7 @@ public class SimpleMatchEventProcess implements MatchEventProcessor {
 	 *  账户模块 释放余额
 	 */
 	@Override
-	public void onOrderCancelled(String symbol, long orderId, long qty) {
+	public void onOrderCancelled(int symbol, long orderId, long qty) {
 		log.info("onOrderCancelled symbol :{} orderId :{}  qty :{}", symbol, orderId, qty);
 	}
 
@@ -56,7 +56,7 @@ public class SimpleMatchEventProcess implements MatchEventProcessor {
 	 *  账户模块 释放余额
 	 */
 	@Override
-	public void onOrderRejected(String symbol, long orderId) {
+	public void onOrderRejected(int symbol, long orderId) {
 		log.info("onOrderRejected symbol :{} orderId :{}", symbol, orderId);
 	}
 }

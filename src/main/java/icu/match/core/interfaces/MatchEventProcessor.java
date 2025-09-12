@@ -21,10 +21,10 @@ public interface MatchEventProcessor {
 	/**
 	 * 主动撤单和 部分成交IOC策略撤单
 	 */
-	void onOrderCancelled(String symbol, long orderId, long qty);
+	void onOrderCancelled(int symbol, long orderId, long qty);
 
 	/**
 	 * 订单被拒绝 FOK策略不满足
 	 */
-	void onOrderRejected(String symbol, long orderId);
+	void onOrderRejected(int symbol, long orderId);
 }

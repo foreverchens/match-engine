@@ -6,6 +6,7 @@ import icu.match.common.OrderSide;
 import icu.match.common.OrderStatus;
 import icu.match.common.OrderTif;
 import icu.match.common.OrderType;
+import icu.match.common.SymbolConstant;
 import icu.match.core.ColdOrderBuffer;
 import icu.match.core.RingOrderBuffer;
 import icu.match.core.SimpleOrderBook;
@@ -40,7 +41,7 @@ import java.util.Map;
 @Component
 public final class MatchingEngine {
 
-	private final Map<String, BaseOrderBook> orderBookMap;
+	private final Map<Integer, BaseOrderBook> orderBookMap;
 
 	@Resource
 	private MatchEventProcessor matchEventProcess;
@@ -51,22 +52,22 @@ public final class MatchingEngine {
 
 	@PostConstruct
 	private void init() {
-		String symbol = "BTCUSDT";
-		RingOrderBuffer ring = new RingOrderBuffer(symbol, 1, 100, 110);
+		SymbolConstant symbol = SymbolConstant.BTCUSDT;
+		RingOrderBuffer ring = new RingOrderBuffer(symbol.getSymbolId(), 1, 100, 110);
 		ColdOrderBuffer cold = new ColdOrderBuffer();
 		SimpleOrderBook orderBook = new SimpleOrderBook(ring, cold);
-		orderBookMap.put(symbol, orderBook);
-		init(symbol, orderBook);
+		orderBookMap.put(symbol.getSymbolId(), orderBook);
+		init(symbol.getSymbolId(), orderBook);
 
 	}
 
-	private static void init(String symbol, SimpleOrderBook orderBook) {
+	private static void init(int symbol, SimpleOrderBook orderBook) {
 		OrderInfo.OrderInfoBuilder builder = OrderInfo.builder();
 		builder.symbol(symbol);
 		builder.userId(1000);
 		builder.qty(1);
 
-		builder.side(OrderSide.BID);
+		builder.side(OrderSide.BID.code);
 		builder.price(100);
 		builder.orderId(1000);
 		orderBook.submit(builder.build());
@@ -81,7 +82,7 @@ public final class MatchingEngine {
 		builder.orderId(1003);
 		orderBook.submit(builder.build());
 
-		builder.side(OrderSide.ASK);
+		builder.side(OrderSide.ASK.code);
 		builder.price(109);
 		builder.orderId(2000);
 		orderBook.submit(builder.build());
@@ -99,8 +100,8 @@ public final class MatchingEngine {
 
 
 	public OrderStatus submit(OrderInfo order) {
-		OrderType orderType = order.getType();
-		if (orderType.isMarket()) {
+		byte orderType = order.getType();
+		if (OrderType.isMarket(orderType)) {
 			// 处理市价单
 			return dealMarketOrder(order);
 		}
@@ -116,10 +117,10 @@ public final class MatchingEngine {
 	 *  4.不断对该层进行头节点撮合 直到完全撮合
 	 */
 	private OrderStatus dealMarketOrder(OrderInfo order) {
-		String symbol = order.getSymbol();
+		int symbol = order.getSymbol();
 		BaseOrderBook orderBook = orderBookMap.get(symbol);
 		long remainingQty = order.getQty();
-		OrderSide side = order.getSide();
+		byte side = order.getSide();
 		while (remainingQty > 0) {
 			BestLiqView bestLiqView = orderBook.bestLiq(side);
 			if (bestLiqView.getTotalQty() <= 0) {
@@ -151,12 +152,12 @@ public final class MatchingEngine {
 	}
 
 	private OrderStatus dealLimitOrder(OrderInfo order) {
-		String symbol = order.getSymbol();
+		int symbol = order.getSymbol();
 		BaseOrderBook orderBook = orderBookMap.get(symbol);
 
-		OrderSide takerSide = order.getSide();
+		byte takerSide = order.getSide();
 		long takerPrice = order.getPrice();
-		OrderTif tif = order.getTif();
+		OrderTif tif = OrderTif.get(order.getTif());
 
 		// 1. 先检查能否立即限价撮合
 		if (!orderBook.canMatchImmediately(takerSide, takerPrice)) {
@@ -177,7 +178,7 @@ public final class MatchingEngine {
 		// 2.能立即限价撮合
 		// 2.1 如果是FOK检查能否立即完全成交
 		long takerQty = order.getQty();
-		if (OrderTif.FOK == order.getTif()) {
+		if (OrderTif.FOK == tif) {
 			BestLiqView bestLiq = orderBook.bestLiq(takerSide, takerPrice);
 			if (bestLiq.getTotalQty() < takerQty) {
 				// 不能完全成交 拒单
@@ -218,7 +219,7 @@ public final class MatchingEngine {
 		}
 	}
 
-	public void cancel(String symbol, long price, long orderId) {
+	public void cancel(int symbol, long price, long orderId) {
 		BaseOrderBook orderBook = orderBookMap.get(symbol);
 		boolean rlt = orderBook.cancel(price, orderId);
 		if (rlt) {
@@ -227,7 +228,7 @@ public final class MatchingEngine {
 	}
 
 	public String snapshot() {
-		return orderBookMap.get("BTCUSDT")
+		return orderBookMap.get(SymbolConstant.BTCUSDT.getSymbolId())
 						   .snapshot();
 	}
 

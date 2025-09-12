@@ -27,7 +27,7 @@ public class OrderEventDisruptorProvider extends AbstractDisruptorProvider<Order
 
 	@Override
 	protected EventFactory<OrderEvent> eventFactory() {
-		return () -> new OrderEvent(OrderEventType.NEW_ORDER, new OrderInfo());
+		return () -> new OrderEvent(OrderEventType.NEW_ORDER.code, new OrderInfo());
 	}
 
 	@Override

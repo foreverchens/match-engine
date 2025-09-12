@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSON;
 
 import icu.match.common.OrderSide;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,10 +24,11 @@ import java.util.Map;
  * @author 中本君
  * @date 2025/8/12
  */
+@Slf4j
 public final class RingOrderBuffer {
 
 	@Getter
-	private final String symbol;
+	private final int symbol;
 
 	/**
 	 * 价格步长（tick，>0）
@@ -86,8 +88,8 @@ public final class RingOrderBuffer {
 	 * 构造热区环形缓冲。
 	 * 最终：数组长度为 2 的幂；lowIdx=0，highIdx=len-1，lastIdx=lowIdx。
 	 */
-	public RingOrderBuffer(String symbol, long step, long lowPrice, long highPrice) {
-		if (symbol == null || symbol.isEmpty()) {
+	public RingOrderBuffer(int symbol, long step, long lowPrice, long highPrice) {
+		if (symbol == 0) {
 			throw new IllegalArgumentException("symbol must not be empty");
 		}
 		if (step <= 0) {
@@ -155,7 +157,7 @@ public final class RingOrderBuffer {
 		PriceLevel level = levels[idx];
 		if (level.isEmpty()) {
 			// 当前level 开始有数据 尝试更新买1卖1价
-			updateBest(idx, price, node.ask);
+			updateBestOnAdded(node.ask, price);
 		}
 		level.submit(node);
 	}
@@ -187,22 +189,20 @@ public final class RingOrderBuffer {
 	}
 
 	/**
-	 * 更新最优买1卖1
+	 * 撤单
+	 * 按价格与订单 ID 从对应价位摘除
+	 * @param price 用于定位PriceLevel
+	 * @param orderId 用于定位OrderNode
+	 * @return OrderNode
 	 */
-	private void updateBest(int curIdx, long curPrice, boolean ask) {
-		if (ask) {
-			// 新增订单为ask 尝试更新卖1价格
-			if (curPrice < this.bestAskPrice) {
-				this.bestAskPrice = curPrice;
-				this.bestAskIdx = curIdx;
-			}
-		} else {
-			// 新增订单为bid 尝试更新买1价格
-			if (curPrice > this.bestBidPrice) {
-				this.bestBidPrice = curPrice;
-				this.bestBidIdx = curIdx;
-			}
+	public OrderNode cancel(long price, long orderId) {
+		int idx = getIdxByPrice(price);
+		OrderNode cancel = levels[idx].cancel(orderId);
+		if (cancel != null && levels[idx].isEmpty()) {
+			// 成功撤单后 该槽为空 尝试更新最优买1卖1价格
+			updateBestOnRemoved(cancel.ask, idx);
 		}
+		return cancel;
 	}
 
 	/**
@@ -211,8 +211,8 @@ public final class RingOrderBuffer {
 	 * @param side take订单方向
 	 * @return make方向最优流动性层
 	 */
-	public PriceLevel getBestLevel(OrderSide side) {
-		return side.isAsk()
+	public PriceLevel getBestLevel(byte side) {
+		return OrderSide.isAsk(side)
 			   ? getBestBidLevel()
 			   : getBestAskLevel();
 	}
@@ -265,9 +265,9 @@ public final class RingOrderBuffer {
 	 * @param takerPrice taker价格
 	 * @return
 	 */
-	public long getTotalQty(OrderSide takerSide, long takerPrice) {
+	public long getTotalQty(byte takerSide, long takerPrice) {
 		long rlt = 0;
-		if (takerSide.isAsk()) {
+		if (OrderSide.isAsk(takerSide)) {
 			// ask
 			int idx = bestBidIdx;
 			while (getLeftIdx(idx) != bestAskIdx) {
@@ -293,22 +293,7 @@ public final class RingOrderBuffer {
 		return rlt;
 	}
 
-	/**
-	 * 撤单
-	 * 按价格与订单 ID 从对应价位摘除
-	 * @param price 用于定位PriceLevel
-	 * @param orderId 用于定位OrderNode
-	 * @return OrderNode
-	 */
-	public OrderNode cancel(long price, long orderId) {
-		int idx = getIdxByPrice(price);
-		OrderNode cancel = levels[idx].cancel(orderId);
-		if (cancel != null && levels[idx].isEmpty()) {
-			// 成功撤单后 该槽为空 尝试更新最优买1卖1价格
-			updateBest(idx, price, cancel.ask);
-		}
-		return cancel;
-	}
+
 
 	// ------------------------------------------------------------------
 	// 核心私有函数
@@ -325,8 +310,8 @@ public final class RingOrderBuffer {
 		int idx = getIdxByPrice(price);
 		OrderNode remove = levels[idx].remove(orderId);
 		if (remove != null && levels[idx].isEmpty()) {
-			// 成功撤单后 该槽为空 尝试更新最优买1卖1价格
-			updateBest(idx, price, remove.ask);
+			// 成功删除后 该槽为空 尝试更新最优买1卖1价格
+			updateBestOnRemoved(remove.ask, idx);
 		}
 		return remove;
 	}
@@ -376,6 +361,60 @@ public final class RingOrderBuffer {
 		return (forward * 100.0) / mask;
 	}
 
+	/**
+	 * 更新最优买1卖1
+	 */
+	private void updateBestOnAdded(boolean ask, long price) {
+		int idx = getIdxByPrice(price);
+		if (ask && price < this.bestAskPrice) {
+			// 新增订单为ask 且卖价更优 尝试更新卖1价格
+			log.info("updateBestOnAdded, bestAskIdx [{} -> {}] bestAskPrice [{} -> {}] ", bestAskIdx, idx,
+					 bestAskPrice,
+					 price);
+			this.bestAskPrice = price;
+			this.bestAskIdx = idx;
+		} else if (!ask && price > this.bestBidPrice) {
+			// 新增订单为bid 且买价更优 尝试更新买1价格
+			log.info("updateBestOnAdded, bestBidIdx [{} -> {}] bestBidPrice [{} -> {}] ", bestBidIdx, idx,
+					 bestBidPrice,
+					 price);
+			this.bestBidPrice = price;
+			this.bestBidIdx = idx;
+		}
+	}
+
+
+	/**
+	 * 当最优流动性的最后一个挂单删除时 更新索引
+	 * 被撤单 被吃单
+	 *
+	 */
+	private void updateBestOnRemoved(boolean ask, int idx) {
+		if (ask && idx == bestAskIdx) {
+			// 撤的是最优卖单价格档位的最后一个挂单
+			// 向右 尝试找到第一个不为空的卖单价格槽
+			while (levels[idx].isEmpty() && idx != highIdx) {
+				idx = getRightIdx(idx);
+			}
+			long price = getPriceByIdx(idx);
+			log.info("updateBestOnRemoved, bestAskIdx [{} -> {}] bestAskPrice [{} -> {}] ", bestAskIdx, idx,
+					 bestAskPrice, price);
+			this.bestAskIdx = idx;
+			this.bestAskPrice = price;
+		} else if (!ask && idx == bestBidIdx) {
+			// 撤的是最优买单价格档位的最后一个挂单
+			// 向左 尝试找到第一个不为空的买单价格槽
+			while (levels[idx].isEmpty() && idx != lowIdx) {
+				idx = getLeftIdx(idx);
+			}
+			long price = getPriceByIdx(idx);
+			log.info("updateBestOnRemoved, bestBidIdx [{} -> {}] bestBidPrice [{} -> {}] ", bestBidIdx, idx,
+					 bestBidPrice, price);
+			this.bestBidIdx = idx;
+			this.bestBidPrice = price;
+		}
+	}
+
 
 	// ------------------------------------------------------------------
 	// 窗口滑动和快照相关接口
@@ -397,7 +436,7 @@ public final class RingOrderBuffer {
 	 * @param incoming 来自冷区的价位桶（不可为 null）
 	 * @return 被挤出的 PriceLevel 列表（按逐出顺序）
 	 */
-	public List<PriceLevel> migrateToInclude(PriceLevel incoming) {
+	public List<PriceLevel> migrate(PriceLevel incoming) {
 		if (incoming == null) {
 			throw new IllegalArgumentException("incoming must not be null");
 		}

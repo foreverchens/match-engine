@@ -19,7 +19,7 @@ import java.util.List;
  * <ul>
  *   <li>每步迁移均为一次冷热交换：取“将要进入窗口一侧”的精确价位，如冷区不存在则用同价位的空 PriceLevel 占位。</li>
  *   <li>左移一步：进入价 = 当前 highPrice（ASK）；右移一步：进入价 = 当前 lowPrice（BID）。</li>
- *   <li>调用 {@link RingOrderBuffer#migrateToInclude(PriceLevel)} 执行一步迁移，并把被逐出的价位回灌冷区。</li>
+ *   <li>调用 {@link RingOrderBuffer#migrate(PriceLevel)} 执行一步迁移，并把被逐出的价位回灌冷区。</li>
  *   <li>不修改 lastIdx/lastPrice（仍然只在成交后由撮合核调用 recordTradePrice 更新）。</li>
  * </ul>
  */
@@ -80,7 +80,7 @@ public final class RecenterManager {
 				// 当冷区一直没数据 且热区一直偏移时
 				// 此刻新订单提交时即使离市价很近 也会先添加到冷区 然后才迁移到热区
 				if (incoming != null) {
-					List<PriceLevel> evicted = ring.migrateToInclude(incoming);
+					List<PriceLevel> evicted = ring.migrate(incoming);
 					putBackNonEmpty(evicted);
 				}
 			}
@@ -88,7 +88,7 @@ public final class RecenterManager {
 				// 进入价位 = 当前 lowPrice，方向 BID
 				PriceLevel incoming = cold.popBestAsk();
 				if (incoming != null) {
-					List<PriceLevel> evicted = ring.migrateToInclude(incoming);
+					List<PriceLevel> evicted = ring.migrate(incoming);
 					putBackNonEmpty(evicted);
 				}
 			}

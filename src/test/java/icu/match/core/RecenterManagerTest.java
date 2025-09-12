@@ -14,7 +14,7 @@ class RecenterManagerTest {
 	@Test
 	void skewComputeAndRecentering() {
 		long step = 1;
-		RingOrderBuffer ring = new RingOrderBuffer("BTCUSDT", step, 100, 107); // len=8
+		RingOrderBuffer ring = new RingOrderBuffer(1001, step, 100, 107); // len=8
 		ColdOrderBuffer cold = new ColdOrderBuffer();
 		OrderNode node = new OrderNode();
 		node.qty = 100;

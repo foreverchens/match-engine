@@ -17,9 +17,6 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import icu.match.common.OrderEventType;
-import icu.match.common.OrderSide;
-import icu.match.common.OrderTif;
-import icu.match.common.OrderType;
 import icu.match.core.model.OrderInfo;
 import icu.match.service.disruptor.order.OrderEvent;
 import io.netty.buffer.ByteBuf;
@@ -118,7 +115,7 @@ public class OrderHandler {
 												 return insert.flatMap(n -> {
 													 this.publish(symbol, userId, orderId, side, type, tif, price,
 																  qty);
-													 // todo 如果需要同步返回 需要注册钩子
+													 // todo 如需同步返回 需注册钩子
 													 return ServerResponse.status(202)
 																		  .contentType(MediaType.APPLICATION_JSON)
 																		  .bodyValue(Map.of("ok", true));
@@ -138,18 +135,17 @@ public class OrderHandler {
 		long seq = ringBuffer.next();
 		OrderEvent event = ringBuffer.get(seq);
 
-		event.setOrderEventType(OrderEventType.NEW_ORDER);
+		event.setEventTypeCode(OrderEventType.NEW_ORDER.code);
 
 		OrderInfo orderInfo = event.getOrderInfo();
 		orderInfo.setOrderId(orderId);
 		orderInfo.setUserId(userId);
-		// todo 可直接传输byte而不是枚举 性能提高但可读性降低
-		orderInfo.setSide(OrderSide.get(side));
-		orderInfo.setType(OrderType.get(type));
-		orderInfo.setTif(OrderTif.get(tif));
+		orderInfo.setSide(side);
+		orderInfo.setType(type);
+		orderInfo.setTif(tif);
 		orderInfo.setPrice(price);
 		orderInfo.setQty(qty);
-		orderInfo.setSymbol("BTCUSDT");
+		orderInfo.setSymbol(1001);
 		ringBuffer.publish(seq);
 	}
 }

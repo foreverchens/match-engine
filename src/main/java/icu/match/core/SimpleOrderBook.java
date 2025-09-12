@@ -21,7 +21,7 @@ import java.util.Objects;
 public class SimpleOrderBook implements BaseOrderBook {
 
 	@Getter
-	private final String symbol;
+	private final int symbol;
 
 	private final RingOrderBuffer ring;
 
@@ -49,7 +49,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 	}
 
 	@Override
-	public BestLiqView bestLiq(OrderSide takerSide) {
+	public BestLiqView bestLiq(byte takerSide) {
 		bestLiqView.clear();
 		PriceLevel liq = ring.getBestLevel(takerSide);
 		if (liq == null) {
@@ -62,7 +62,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 	}
 
 	@Override
-	public BestLiqView bestLiq(OrderSide takerSide, long limitPrice) {
+	public BestLiqView bestLiq(byte takerSide, long takerLimitPrice) {
 		PriceLevel liq;
 		bestLiqView.clear();
 
@@ -73,13 +73,13 @@ public class SimpleOrderBook implements BaseOrderBook {
 		}
 		bestLiqView.setPrice(liq.getPrice());
 		bestLiqView.setHeadQty(liq.getFirst().qty);
-		bestLiqView.setTotalQty(ring.getTotalQty(takerSide, limitPrice));
+		bestLiqView.setTotalQty(ring.getTotalQty(takerSide, takerLimitPrice));
 		return bestLiqView;
 	}
 
 	@Override
-	public MatchTrade matchHead(OrderSide takerSide, long takerQty) {
-		PriceLevel bestPriceLevel = ring.getBestLevel(takerSide);
+	public MatchTrade matchHead(byte takerSideCode, long takerQty) {
+		PriceLevel bestPriceLevel = ring.getBestLevel(takerSideCode);
 		if (bestPriceLevel == null) {
 			throw new IllegalArgumentException("bestPriceLevel must not be null");
 		}
@@ -91,18 +91,20 @@ public class SimpleOrderBook implements BaseOrderBook {
 			// makerOrder 完全成交 takerOrder部分成交
 			// 将makerOrder从订单簿移除
 			ring.remove(bestPriceLevel.getPrice(), makerOrder.orderId);
+			// marker被完全吃单后。如果价格当前整个流动性为空 需要检查窗口偏移情况
+			recenter.checkAndRecenter();
 		} else {
 			// makerOrder 部分成交 takerOrder完全成交
 			// 更新 makerOrder qty
 			ring.patchQty(bestPriceLevel.getPrice(), makerOrder.orderId, makerOrder.qty - matchQty);
 		}
-		return matchTrade.fill(symbol, 0, makerOrder.userId, 0, makerOrder.orderId, takerSide,
+		return matchTrade.fill(symbol, 0, makerOrder.userId, 0, makerOrder.orderId, takerSideCode,
 							   bestPriceLevel.getPrice(), matchQty);
 	}
 
 	@Override
-	public boolean canMatchImmediately(OrderSide takerSide, long limitPrice) {
-		return takerSide.isAsk()
+	public boolean canMatchImmediately(byte takerSide, long limitPrice) {
+		return OrderSide.isAsk(takerSide)
 			   ? limitPrice <= ring.bestBidPrice()
 			   : limitPrice >= ring.bestAskPrice();
 	}
@@ -110,8 +112,8 @@ public class SimpleOrderBook implements BaseOrderBook {
 	@Override
 	public OrderStatus submit(OrderInfo orderInfo) {
 		long price = orderInfo.getPrice();
-		OrderNode node = pool.alloc(orderInfo.getOrderId(), orderInfo.getUserId(), orderInfo.getSide()
-																							.isAsk(),
+		OrderNode node = pool.alloc(orderInfo.getOrderId(), orderInfo.getUserId(),
+									OrderSide.isAsk(orderInfo.getSide()),
 									orderInfo.getQty());
 		if (ring.isWindow(price)) {
 			ring.submit(price, node);

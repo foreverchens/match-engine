@@ -69,8 +69,7 @@ public final class OrderNodePoolFixed {
 			n = fromPool;
 			n.init(orderId, userId, ask, qty, true);
 			inUsePooled++;
-		}
-		else {
+		} else {
 			overflowAlloc++;
 			n = new OrderNode();
 			n.init(orderId, userId, ask, qty, false);
@@ -98,8 +97,7 @@ public final class OrderNodePoolFixed {
 		if (wasPooled) {
 			freeStack.addLast(node);
 			inUsePooled--;
-		}
-		else {
+		} else {
 			releasedOverflowCount++;
 		}
 	}

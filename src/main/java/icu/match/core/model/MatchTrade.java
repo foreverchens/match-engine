@@ -6,7 +6,6 @@ package icu.match.core.model;/**
 
 import org.springframework.data.relational.core.mapping.Table;
 
-import icu.match.common.OrderSide;
 import icu.match.util.SnowFlakeIdUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +27,7 @@ public final class MatchTrade {
 
 	long matchSeq;
 
-	String symbol;
+	int symbol;
 
 	long takerUserId;
 
@@ -38,7 +37,7 @@ public final class MatchTrade {
 
 	long makerOrderId;
 
-	OrderSide takerSide;
+	byte takerSide;
 
 	long price;
 
@@ -49,7 +48,7 @@ public final class MatchTrade {
 	/** 复用前清空（可选） */
 	public void clear() {
 		matchSeq = 0;
-		symbol = null;
+		symbol = 0;
 		takerUserId = 0L;
 		makerUserId = 0L;
 		takerOrderId = 0L;
@@ -59,7 +58,7 @@ public final class MatchTrade {
 		tradeTime = 0L;
 	}
 
-	public MatchTrade fill(String symbol, long tUid, long mUid, long tOid, long mOid, OrderSide takerSide, long price,
+	public MatchTrade fill(int symbol, long tUid, long mUid, long tOid, long mOid, byte takerSide, long price,
 						   long qty) {
 		this.matchSeq = SnowFlakeIdUtil.nextId();
 		this.symbol = symbol;

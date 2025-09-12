@@ -29,7 +29,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 	@Override
 	public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
 		try {
-			OrderEventType orderEventType = event.getOrderEventType();
+			OrderEventType orderEventType = OrderEventType.get(event.getEventTypeCode());
 			OrderInfo orderInfo = event.getOrderInfo();
 
 			log.info("submit order :{}", orderInfo.getOrderId());

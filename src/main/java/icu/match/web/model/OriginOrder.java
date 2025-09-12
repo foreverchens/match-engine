@@ -5,6 +5,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import icu.match.common.OrderSide;
 import icu.match.common.OrderTif;
 import icu.match.common.OrderType;
+import icu.match.common.SymbolConstant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +28,7 @@ public class OriginOrder {
 
 	private long orderId;
 
-	private String symbol;
+	private SymbolConstant symbol;
 
 	private OrderSide side;
 
