@@ -115,7 +115,8 @@ public class OrderQueue {
 	 * 从链表中摘除指定节点（不负责更新索引或回收）。
 	 */
 	private void unlink(OrderNode n) {
-		OrderNode p = n.prev, nx = n.next;
+		OrderNode p = n.prev;
+		OrderNode nx = n.next;
 		if (p == null) {
 			head = nx;
 		} else {

@@ -4,9 +4,6 @@ package icu.match.core.model;/**
  * @date 2025/8/18
  */
 
-import icu.match.common.OrderSide;
-import icu.match.common.OrderTif;
-import icu.match.common.OrderType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,13 +27,13 @@ public class OrderInfo {
 
 	private long orderId;
 
-	private String symbol;
+	private int symbol;
 
-	private OrderSide side;
+	private byte side;
 
-	private OrderType type;
+	private byte type;
 
-	private OrderTif tif;
+	private byte tif;
 
 	private long price;
 

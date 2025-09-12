@@ -9,15 +9,15 @@ public enum OrderStatus {
 	/**
 	 * 初始状态
 	 */
-	NEW(0),
+	NEW(100),
 	/**
 	 * 正常情况 入订单簿 部分成交 完成成交
 	 */
-	PENDING(10), PARTIALLY_FILLED(11), FILLED(12),
+	PENDING(110), PARTIALLY_FILLED(111), FILLED(112),
 	/**
 	 * 异常情况 被测单 被拒绝
 	 */
-	CANCELED(20), REJECTED(21);
+	CANCELED(120), REJECTED(121);
 
 	public final int val;
 

@@ -19,14 +19,14 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class OrderEvent {
 
-	private OrderEventType orderEventType;
+	private byte eventTypeCode;
 
 	private OrderInfo orderInfo;
 
 
 	public void reset() {
-		orderEventType = OrderEventType.NEW_ORDER;
-		orderInfo.setSymbol(null);
+		eventTypeCode = OrderEventType.NEW_ORDER.code;
+		orderInfo.setSymbol(0);
 		orderInfo.setOrderId(0);
 	}
 
