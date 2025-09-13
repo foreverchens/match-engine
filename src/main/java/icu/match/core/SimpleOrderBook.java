@@ -137,7 +137,11 @@ public class SimpleOrderBook implements BaseOrderBook {
 	}
 
 	public String snapshot() {
-		return ring.snapshot();
+		return ring.depth();
+	}
+
+	public String depth() {
+		return ring.depth();
 	}
 
 

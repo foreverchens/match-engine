@@ -39,14 +39,14 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public final class SimpleMatchingEngine {
+public final class MatchEngine {
 
 	private final Map<Integer, BaseOrderBook> orderBookMap;
 
 	@Resource
 	private MatchEventProcessor matchEventProcess;
 
-	public SimpleMatchingEngine() {
+	public MatchEngine() {
 		orderBookMap = new HashMap<>();
 	}
 
@@ -236,9 +236,9 @@ public final class SimpleMatchingEngine {
 		}
 	}
 
-	public String snapshot() {
+	public String depth() {
 		return orderBookMap.get(SymbolConstant.BTCUSDT.getSymbolId())
-						   .snapshot();
+						   .depth();
 	}
 
 

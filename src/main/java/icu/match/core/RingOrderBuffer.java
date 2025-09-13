@@ -551,7 +551,7 @@ public final class RingOrderBuffer {
 	/**
 	 * 快照
 	 */
-	public String snapshot() {
+	public String depth() {
 
 		Map<String, Long> bids = new HashMap<>();
 		Map<String, Long> asks = new HashMap<>();

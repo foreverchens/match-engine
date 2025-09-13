@@ -45,4 +45,6 @@ public interface BaseOrderBook {
 
 	String snapshot();
 
+	String depth();
+
 }

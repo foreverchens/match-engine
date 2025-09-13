@@ -10,7 +10,7 @@ import icu.match.core.wal.TxContext;
 import icu.match.core.wal.WalAppender;
 import icu.match.core.wal.WalWriter;
 import icu.match.service.global.MonoSinkManage;
-import icu.match.service.match.SimpleMatchingEngine;
+import icu.match.service.match.MatchEngine;
 import icu.match.web.model.OrderResult;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 	private final WalWriter svc = new WalWriter(new WalAppender(Paths.get("./data/wal"), 256L * 1024 * 1024));
 
 	@Resource
-	private SimpleMatchingEngine matchEngine;
+	private MatchEngine matchEngine;
 
 	public OrderEventHandler() throws IOException {}
 
