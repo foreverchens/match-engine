@@ -49,6 +49,8 @@ public final class RingOrderBuffer {
 	/**
 	 * 槽位数组（构造时按 index→price 全量初始化）
 	 */
+	private final long[] priceArr;
+
 	private final PriceLevel[] levels;
 
 	/**
@@ -117,14 +119,16 @@ public final class RingOrderBuffer {
 		// 全量初始化：index → price = lowPrice + i * step
 		// 保持初始数组的价格升序排序
 		this.levels = new PriceLevel[len];
+		this.priceArr = new long[len];
 		for (int i = 0; i < len; i++) {
 			long priceAtIdx = lowPrice + (long) i * step;
+			priceArr[i] = priceAtIdx;
 			levels[i] = new PriceLevel(priceAtIdx);
 		}
 
 		// 初始化窗口价格与最近访问
-		this.lowPrice = levels[lowIdx].getPrice();
-		this.highPrice = levels[highIdx].getPrice();
+		this.lowPrice = priceArr[lowIdx];
+		this.highPrice = priceArr[highIdx];
 
 		// 初始最优bidIdx为 highIdx  在第一次get bestBidLevel时 会从高往低查找
 		this.bestBidIdx = highIdx;
@@ -292,7 +296,6 @@ public final class RingOrderBuffer {
 		}
 		return rlt;
 	}
-
 
 
 	// ------------------------------------------------------------------
@@ -495,6 +498,7 @@ public final class RingOrderBuffer {
 		lowIdx = (lowIdx - 1) & mask;
 		highIdx = (highIdx - 1) & mask;
 
+		priceArr[evictIdx] = coldBid.getPrice();
 		levels[evictIdx] = coldBid;
 
 		// 仅更新窗口价格；不改 lastIdx/lastPrice（成交后另行设置）
@@ -502,6 +506,13 @@ public final class RingOrderBuffer {
 		highPrice = getPriceByIdx(highIdx);
 
 		return evicted;
+	}
+
+	/**
+	 * 基于idx获取其price
+	 */
+	private long getPriceByIdx(int idx) {
+		return priceArr[idx];
 	}
 
 	/**
@@ -519,19 +530,13 @@ public final class RingOrderBuffer {
 		lowIdx = (lowIdx + 1) & mask;
 		highIdx = (highIdx + 1) & mask;
 
+		priceArr[evictIdx] = coldAsk.getPrice();
 		levels[evictIdx] = coldAsk;
 
 		lowPrice = getPriceByIdx(lowIdx);
 		highPrice = getPriceByIdx(highIdx);
 
 		return evicted;
-	}
-
-	/**
-	 * 基于idx获取其price
-	 */
-	private long getPriceByIdx(int idx) {
-		return levels[idx].getPrice();
 	}
 
 	/**

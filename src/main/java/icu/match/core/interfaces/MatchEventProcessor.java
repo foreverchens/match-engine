@@ -30,5 +30,4 @@ public interface MatchEventProcessor {
 	 */
 	void onOrderRejected(int symbol, long orderId);
 
-	void onCompleted();
 }

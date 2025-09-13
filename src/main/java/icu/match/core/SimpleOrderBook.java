@@ -139,4 +139,6 @@ public class SimpleOrderBook implements BaseOrderBook {
 	public String snapshot() {
 		return ring.snapshot();
 	}
+
+
 }

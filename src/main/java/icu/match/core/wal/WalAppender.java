@@ -110,7 +110,8 @@ public class WalAppender implements AutoCloseable {
 				break;
 			}
 			if (r < HEADER_FIXED) {
-				return new ScanResult(index, pos, true); // 半条头 -> 截断
+				// 半条头 -> 截断
+				return new ScanResult(index, pos, true);
 			}
 			hdr.flip();
 			short magic = hdr.getShort();
@@ -159,7 +160,7 @@ public class WalAppender implements AutoCloseable {
 		return new ScanResult(index, pos, false);
 	}
 
-	public synchronized Lsn append(byte type, byte[] payload, long wallClockMillis, boolean force) throws IOException {
+	public Lsn append(byte type, byte[] payload, long wallClockMillis, boolean force) throws IOException {
 		if (payload == null) {
 			payload = new byte[0];
 		}
@@ -219,15 +220,15 @@ public class WalAppender implements AutoCloseable {
 		if (ch != null) {
 			ch.close();
 		}
-		openSegment(segmentId + 1, /*truncateBadTail*/ false);
+		openSegment(segmentId + 1, false);
 	}
 
-	public synchronized void force() throws IOException {
+	public void force() throws IOException {
 		ch.force(true);
 	}
 
 	@Override
-	public synchronized void close() throws IOException {
+	public void close() throws IOException {
 		if (ch != null) {
 			ch.close();
 		}

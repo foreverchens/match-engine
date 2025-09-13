@@ -8,7 +8,7 @@ import icu.match.common.OrderEventType;
 import icu.match.core.model.OrderInfo;
 import icu.match.core.wal.TxContext;
 import icu.match.core.wal.WalAppender;
-import icu.match.core.wal.WalTxService;
+import icu.match.core.wal.WalWriter;
 import icu.match.service.global.MonoSinkManage;
 import icu.match.service.match.SimpleMatchingEngine;
 import icu.match.web.model.OrderResult;
@@ -30,8 +30,7 @@ import java.nio.file.Paths;
 public class OrderEventHandler implements EventHandler<OrderEvent> {
 
 
-	private final WalTxService svc = new WalTxService(
-			new WalAppender(Paths.get("./data/wal/orders"), 256L * 1024 * 1024));
+	private final WalWriter svc = new WalWriter(new WalAppender(Paths.get("./data/wal"), 256L * 1024 * 1024));
 
 	@Resource
 	private SimpleMatchingEngine matchEngine;

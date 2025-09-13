@@ -11,7 +11,7 @@ package icu.match.core.wal;/**
 public class Lsn {
 	public final int segmentId;
 
-	public final long index; // in-segment
+	public final long index;
 
 	public Lsn(int segmentId, long index) {
 		this.segmentId = segmentId;

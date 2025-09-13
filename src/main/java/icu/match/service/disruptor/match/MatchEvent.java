@@ -4,6 +4,7 @@ package icu.match.service.disruptor.match;/**
  * @date 2025/9/10
  */
 
+import icu.match.common.OrderStatus;
 import icu.match.core.model.MatchTrade;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,16 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class MatchEvent {
 
-	private MatchTrade matchTrade;
+	private OrderStatus orderStatus;
+
+	private int symbol;
+
+	private long orderId;
+
+	private MatchTrade matchTrade = new MatchTrade();
+
+	public void reset() {
+		orderStatus = null;
+	}
 
 }

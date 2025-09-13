@@ -2,15 +2,18 @@ package icu.match.service.disruptor.match;
 
 import com.lmax.disruptor.EventHandler;
 
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.query.Criteria;
+import org.springframework.data.relational.core.query.Query;
+import org.springframework.data.relational.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import icu.match.core.model.MatchTrade;
+import icu.match.web.model.OriginOrder;
 import icu.match.web.service.MatchTradeService;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 /**
@@ -21,37 +24,53 @@ import javax.annotation.Resource;
 @Component
 public class MatchEventHandler implements EventHandler<MatchEvent> {
 
-	private final Sinks.Many<MatchTrade> sink = Sinks.many()
-													 .unicast()
-													 .onBackpressureBuffer();
+	@Resource
+	private R2dbcEntityTemplate template;
 
 	@Resource
 	private MatchTradeService matchTradeService;
 
-	@PostConstruct
-	private void init() {
-		sink.asFlux()
-			.concatMap(t -> matchTradeService.saveTrade(t)
-											 .doOnSuccess(saved -> log.info("tradeId: {}", saved.getMatchSeq()))
-											 .then(Mono.defer(() -> publish(t))), 1)
-			.doOnError(e -> log.error("FATAL stream error", e))
-			.retry()
-			.subscribe();
-	}
-
-	private Mono<Void> publish(MatchTrade t) {
-		// 成功后发布到 MQ/Redis
-		return Mono.empty();
-	}
 
 	@Override
 	public void onEvent(MatchEvent matchEvent, long sequence, boolean endOfBatch) {
-		MatchTrade matchTrade = matchEvent.getMatchTrade();
-		log.info("received trade event :{}", matchTrade.getMatchSeq());
-		// 深拷贝/不可变，避免 Disruptor 复用对象被改
-		var r = sink.tryEmitNext(matchTrade);
-		if (r.isFailure()) {
-			log.error("emit failed: {}", r);
+		if (matchEvent.getOrderStatus() == null) {
+			// 成交事件
+			MatchTrade matchTrade = matchEvent.getMatchTrade();
+			log.info("received trade event :{}", matchTrade.getMatchSeq());
+			matchTradeService.saveTrade(matchTrade)
+							 .doOnSuccess(s -> {
+								 // 成功后发布 成交事件 到 MQ/Redis
+							 })
+							 .doOnError(e -> log.error("FATAL stream error", e))
+							 .retry()
+							 // 异步执行有脏读风险 可对数据进行克隆
+							 // .subscribe()
+							 .block();
+		} else {
+			int symbol = matchEvent.getSymbol();
+			long orderId = matchEvent.getOrderId();
+			int status = matchEvent.getOrderStatus().val;
+			matchEvent.reset();
+			log.info("received status update event orderId :{}", orderId);
+			this.deal(symbol, orderId, status)
+				.doOnSuccess(saved -> {
+					// 成功后发布 订单状态变更事件 到 MQ/Redis
+				})
+				.doOnError(e -> log.error("FATAL stream error", e))
+				.retry()
+				.then(Mono.defer(Mono::empty))
+				// .subscribe()
+				.block();
 		}
+
+	}
+
+	private Mono<Integer> deal(int symbol, long orderId, int status) {
+		return template.update(OriginOrder.class)
+					   .matching(Query.query(Criteria.where("order_id")
+													 .is(orderId)
+													 .and("symbol")
+													 .is(symbol)))
+					   .apply(Update.update("status", status));
 	}
 }

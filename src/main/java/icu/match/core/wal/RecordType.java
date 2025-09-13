@@ -8,7 +8,7 @@ package icu.match.core.wal;/**
  * @author 中本君
  * @date 2025/9/13 
  */
-public interface WalRecordType {
+public interface RecordType {
 	byte BEGIN_TX = 1;
 
 	byte ORDER_REQ = 10;

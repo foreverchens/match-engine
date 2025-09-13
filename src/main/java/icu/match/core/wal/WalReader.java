@@ -19,7 +19,7 @@ import java.util.zip.CRC32;
  * @author 中本君
  * @date 2025/9/13 
  */
-public class WalReplayerTx {
+public class WalReader {
 
 	private static final short MAGIC = (short) 0xBEEF;
 
@@ -29,7 +29,7 @@ public class WalReplayerTx {
 
 	public static void main(String[] args) throws Exception {
 		/**
-		 * == Replay segment: ./data/wal/orders/wal-000000.bin
+		 * == Replay segment: ./data/wal/wal-000000.bin
 		 * // 下单
 		 * 0:0 BEGIN txId=1
 		 * 0:1 ORDER txId=1 userId=1 orderId=98873039 symbol=1001 side=0 type=0 tif=0 price=104 qty=1 time=0
@@ -39,7 +39,7 @@ public class WalReplayerTx {
 		 * 0:4 CANCEL txId=2 symbol=1001 orderId=98873039 price=104
 		 * 0:5 COMMIT txId=2
 		 */
-		WalReplayerTx.replayDir("./data/wal/orders");
+		WalReader.replayDir("./data/wal");
 	}
 
 	public static void replayDir(String dir) throws IOException {
@@ -113,14 +113,14 @@ public class WalReplayerTx {
 				Lsn lsn = new Lsn(segId, index);
 
 				switch (type) {
-					case WalRecordType.BEGIN_TX: {
+					case RecordType.BEGIN_TX: {
 						long txId = ByteBuffer.wrap(payload)
 											  .order(ByteOrder.LITTLE_ENDIAN)
 											  .getLong();
 						System.out.printf("%s BEGIN txId=%d%n", lsn, txId);
 						break;
 					}
-					case WalRecordType.ORDER_REQ: {
+					case RecordType.ORDER_REQ: {
 						ByteBuffer buf = ByteBuffer.wrap(payload)
 												   .order(ByteOrder.LITTLE_ENDIAN);
 						long txId = buf.getLong();
@@ -139,7 +139,7 @@ public class WalReplayerTx {
 								time);
 						break;
 					}
-					case WalRecordType.CANCEL_REQ: {
+					case RecordType.CANCEL_REQ: {
 						ByteBuffer buf = ByteBuffer.wrap(payload)
 												   .order(ByteOrder.LITTLE_ENDIAN);
 						long txId = buf.getLong();
@@ -150,7 +150,7 @@ public class WalReplayerTx {
 										  orderId, price);
 						break;
 					}
-					case WalRecordType.COMMIT_TX: {
+					case RecordType.COMMIT_TX: {
 						long txId = ByteBuffer.wrap(payload)
 											  .order(ByteOrder.LITTLE_ENDIAN)
 											  .getLong();

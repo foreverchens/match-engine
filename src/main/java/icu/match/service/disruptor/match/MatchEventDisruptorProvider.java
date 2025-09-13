@@ -9,7 +9,6 @@ import com.lmax.disruptor.EventHandler;
 
 import org.springframework.stereotype.Component;
 
-import icu.match.core.model.MatchTrade;
 import icu.match.service.disruptor.AbstractDisruptorProvider;
 
 import javax.annotation.Resource;
@@ -26,7 +25,7 @@ public class MatchEventDisruptorProvider extends AbstractDisruptorProvider<Match
 
 	@Override
 	protected EventFactory<MatchEvent> eventFactory() {
-		return () -> new MatchEvent(new MatchTrade());
+		return MatchEvent::new;
 	}
 
 	@Override
