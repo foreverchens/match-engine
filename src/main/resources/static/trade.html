@@ -290,15 +290,15 @@
                 <div>
                     <label for="side">方向</label>
                     <select id="side">
-                        <option value="BID">买入 (BUY)</option>
-                        <option value="ASK">卖出 (SELL)</option>
+                        <option value="0">买入</option>
+                        <option value="1">卖出</option>
                     </select>
                 </div>
                 <div>
                     <label for="type">类型</label>
                     <select id="type">
-                        <option value="LIMIT">限价单</option>
-                        <option value="MARKET">市价单</option>
+                        <option value="0">限价单</option>
+                        <option value="1">市价单</option>
                         <option value="STOP">止损单</option>
                     </select>
                 </div>
@@ -313,9 +313,9 @@
                 <div>
                     <label for="tif">有效时间 (TIF)</label>
                     <select id="tif">
-                        <option value="GTC">GTC</option>
-                        <option value="IOC">IOC</option>
-                        <option value="FOK">FOK</option>
+                        <option value="0">GTC</option>
+                        <option value="1">IOC</option>
+                        <option value="2">FOK</option>
                     </select>
                 </div>
                 <div class="col-span-2" style="display:flex; gap:10px">
@@ -447,9 +447,9 @@
         }
 
         const order = {
-            userId: 1,
+            userId: 999,
             orderId: Math.round(Math.random() * 100000000),
-            symbol: "BTCUSDT",
+            symbol: 1001,
             type: type,       // LIMIT / MARKET / STOP
             tif: tif,         // GTC / IOC / FOK
             side: side,       // BID / ASK
@@ -481,8 +481,8 @@
         }
     }
 
-    document.getElementById('btnBuy').addEventListener('click', () => submitOrder('BID'));
-    document.getElementById('btnSell').addEventListener('click', () => submitOrder('ASK'));
+    document.getElementById('btnBuy').addEventListener('click', () => submitOrder('0'));
+    document.getElementById('btnSell').addEventListener('click', () => submitOrder('1'));
 
 
     /** -----------------------

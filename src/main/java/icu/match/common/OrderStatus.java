@@ -11,13 +11,13 @@ public enum OrderStatus {
 	 */
 	NEW(100),
 	/**
-	 * 正常情况 入订单簿 部分成交 完成成交
+	 * 中间状态 新入订单簿 部分成交
 	 */
-	PENDING(110), PARTIALLY_FILLED(111), FILLED(112),
+	OPEN(110), PARTIALLY_FILLED(111),
 	/**
-	 * 异常情况 被测单 被拒绝
+	 * 终止状态 完全成交 被撤单取消 FOK不满足被拒绝 IOC部分成交取消
 	 */
-	CANCELED(120), REJECTED(121);
+	FILLED(120), CANCELED(121), REJECTED(122), PARTIALLY_FILLED_CANCELED(123);
 
 	public final int val;
 

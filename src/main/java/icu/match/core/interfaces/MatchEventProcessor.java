@@ -18,6 +18,8 @@ public interface MatchEventProcessor {
 	 */
 	void onTraded(MatchTrade matchTrade);
 
+	void onFilled(int symbol, long orderId);
+
 	/**
 	 * 主动撤单和 部分成交IOC策略撤单
 	 */
@@ -27,4 +29,6 @@ public interface MatchEventProcessor {
 	 * 订单被拒绝 FOK策略不满足
 	 */
 	void onOrderRejected(int symbol, long orderId);
+
+	void onCompleted();
 }

@@ -2,10 +2,6 @@ package icu.match.web.model;
 
 import org.springframework.data.relational.core.mapping.Table;
 
-import icu.match.common.OrderSide;
-import icu.match.common.OrderTif;
-import icu.match.common.OrderType;
-import icu.match.common.SymbolConstant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,13 +24,13 @@ public class OriginOrder {
 
 	private long orderId;
 
-	private SymbolConstant symbol;
+	private int symbol;
 
-	private OrderSide side;
+	private byte side;
 
-	private OrderType type;
+	private byte type;
 
-	private OrderTif tif;
+	private byte tif;
 
 	private long qty;
 

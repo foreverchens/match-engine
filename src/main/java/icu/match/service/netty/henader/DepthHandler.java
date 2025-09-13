@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketSession;
 
-import icu.match.service.match.MatchingEngine;
+import icu.match.service.match.SimpleMatchingEngine;
 import icu.match.web.service.MatchTradeService;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ import java.time.Duration;
 public class DepthHandler implements WebSocketHandler {
 
 	@Resource
-	private MatchingEngine matchingEngine;
+	private SimpleMatchingEngine simpleMatchingEngine;
 
 	@Resource
 	private MatchTradeService matchTradeService;
@@ -38,7 +38,7 @@ public class DepthHandler implements WebSocketHandler {
 	public Mono<Void> handle(WebSocketSession session) {
 		// 每秒推送一次当前时间
 		Flux<String> timeFlux = Flux.interval(Duration.ofSeconds(1))
-									.map(e -> matchingEngine.snapshot());
+									.map(e -> simpleMatchingEngine.snapshot());
 		return session.send(timeFlux.map(session::textMessage));
 	}
 }

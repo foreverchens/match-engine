@@ -39,14 +39,14 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public final class MatchingEngine {
+public final class SimpleMatchingEngine {
 
 	private final Map<Integer, BaseOrderBook> orderBookMap;
 
 	@Resource
 	private MatchEventProcessor matchEventProcess;
 
-	public MatchingEngine() {
+	public SimpleMatchingEngine() {
 		orderBookMap = new HashMap<>();
 	}
 
@@ -138,6 +138,9 @@ public final class MatchingEngine {
 				matchTrade.setTakerUserId(order.getUserId());
 				matchTrade.setTakerOrderId(order.getOrderId());
 				matchEventProcess.onTraded(matchTrade);
+				if (matchTrade.isMakerFilled()) {
+					matchEventProcess.onFilled(symbol, matchTrade.getMakerOrderId());
+				}
 				if (remainingQty == 0) {
 					break;
 				}
@@ -165,8 +168,10 @@ public final class MatchingEngine {
 			// 1.2在检查订单TIF IOC策略则取消 FOK策略则拒单 GTC策略则提交到订单簿
 			switch (tif) {
 				case FOK:
+					matchEventProcess.onOrderRejected(symbol, order.getOrderId());
 					return OrderStatus.REJECTED;
 				case IOC:
+					matchEventProcess.onOrderCancelled(symbol, order.getOrderId(), 0);
 					return OrderStatus.CANCELED;
 				case GTC:
 					// 1.3 不能立即撮合的GTC单子 提交到订单簿
@@ -202,10 +207,14 @@ public final class MatchingEngine {
 			matchTrade.setTakerUserId(order.getUserId());
 			matchTrade.setTakerOrderId(order.getOrderId());
 			matchEventProcess.onTraded(matchTrade);
+			if (matchTrade.isMakerFilled()) {
+				matchEventProcess.onFilled(symbol, matchTrade.getMakerOrderId());
+			}
 		}
 		// 2.5 末尾处理
 		if (remainingQty == 0) {
 			// 完全撮合 FOK策略订单肯定完全撮合
+			matchEventProcess.onFilled(symbol, order.getOrderId());
 			return OrderStatus.FILLED;
 		}
 		// 未完全撮合

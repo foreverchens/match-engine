@@ -5,10 +5,10 @@ import com.lmax.disruptor.RingBuffer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import icu.match.service.disruptor.match.MatchEvent;
+import icu.match.service.disruptor.match.MatchEventDisruptorProvider;
 import icu.match.service.disruptor.order.OrderEvent;
 import icu.match.service.disruptor.order.OrderEventDisruptorProvider;
-import icu.match.service.disruptor.trade.TradeEvent;
-import icu.match.service.disruptor.trade.TradeEventDisruptorProvider;
 
 /**
  * @author 中本君
@@ -24,7 +24,7 @@ public class DisruptorConfig {
 
 
 	@Bean
-	public RingBuffer<TradeEvent> tradeEventRingBuffer(TradeEventDisruptorProvider provider) {
+	public RingBuffer<MatchEvent> matchEventRingBuffer(MatchEventDisruptorProvider provider) {
 		return provider.ringBuffer();
 	}
 }

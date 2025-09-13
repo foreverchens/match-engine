@@ -4,6 +4,7 @@ package icu.match.core.model;/**
  * @date 2025/8/17
  */
 
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.relational.core.mapping.Table;
 
 import icu.match.util.SnowFlakeIdUtil;
@@ -45,6 +46,10 @@ public final class MatchTrade {
 
 	long tradeTime;
 
+	@Transient
+	boolean makerFilled = false;
+
+
 	/** 复用前清空（可选） */
 	public void clear() {
 		matchSeq = 0;
@@ -59,7 +64,7 @@ public final class MatchTrade {
 	}
 
 	public MatchTrade fill(int symbol, long tUid, long mUid, long tOid, long mOid, byte takerSide, long price,
-						   long qty) {
+						   boolean makerFilled, long qty) {
 		this.matchSeq = SnowFlakeIdUtil.nextId();
 		this.symbol = symbol;
 		this.takerUserId = tUid;
@@ -69,6 +74,7 @@ public final class MatchTrade {
 		this.takerSide = takerSide;
 		this.price = price;
 		this.qty = qty;
+		this.makerFilled = makerFilled;
 		this.tradeTime = System.currentTimeMillis();
 		return this;
 	}

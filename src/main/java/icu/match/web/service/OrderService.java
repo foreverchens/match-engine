@@ -59,11 +59,10 @@ public class OrderService {
 		event.setEventTypeCode(eventTypeCode);
 		OrderInfo orderInfo = event.getOrderInfo();
 		BeanUtils.copyProperties(originOrder, orderInfo);
-		orderInfo.setSymbol(originOrder.getSymbol()
-									   .getSymbolId());
-		orderInfo.setTif(originOrder.getTif().code);
-		orderInfo.setSide(originOrder.getSide().code);
-		orderInfo.setType(originOrder.getType().code);
+		orderInfo.setSymbol(originOrder.getSymbol());
+		orderInfo.setTif(originOrder.getTif());
+		orderInfo.setSide(originOrder.getSide());
+		orderInfo.setType(originOrder.getType());
 		ringBuffer.publish(seq);
 	}
 

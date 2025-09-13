@@ -4,15 +4,19 @@ package icu.match.service.match;/**
  * @date 2025/9/10
  */
 
-import com.lmax.disruptor.RingBuffer;
-
-import org.springframework.beans.BeanUtils;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.query.Criteria;
+import org.springframework.data.relational.core.query.Query;
+import org.springframework.data.relational.core.query.Update;
 import org.springframework.stereotype.Component;
 
+import icu.match.common.OrderStatus;
 import icu.match.core.interfaces.MatchEventProcessor;
 import icu.match.core.model.MatchTrade;
-import icu.match.service.disruptor.trade.TradeEvent;
+import icu.match.web.model.OriginOrder;
+import icu.match.web.service.MatchTradeService;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
 
@@ -24,21 +28,30 @@ import javax.annotation.Resource;
 @Component
 public class SimpleMatchEventProcess implements MatchEventProcessor {
 
+
 	@Resource
-	private RingBuffer<TradeEvent> tradeEventRingBuffer;
+	private MatchTradeService matchTradeService;
+
+	@Resource
+	private R2dbcEntityTemplate template;
 
 	/**
-	 * 结果的发布 通知订单 账户模块等等
+	 *  先入库 二阶段提交后在发布
 	 */
 	@Override
-	public void onTraded(MatchTrade source) {
-		log.info("onTraded :{}", source.getMatchSeq());
-		long next = tradeEventRingBuffer.next();
-		TradeEvent tradeEvent = tradeEventRingBuffer.get(next);
-		MatchTrade target = tradeEvent.getMatchTrade();
-		BeanUtils.copyProperties(source, target);
-		tradeEventRingBuffer.publish(next);
+	public void onTraded(MatchTrade trade) {
+		log.info("onTraded :{}", trade.getMatchSeq());
+		matchTradeService.saveTrade(trade)
+						 .block();
 	}
+
+	@Override
+	public void onFilled(int symbol, long orderId) {
+		log.info("onFilled symbol :{} orderId :{}", symbol, orderId);
+		deal(symbol, orderId, OrderStatus.FILLED.val).block();
+
+	}
+
 
 	/**
 	 *  撤单
@@ -47,7 +60,12 @@ public class SimpleMatchEventProcess implements MatchEventProcessor {
 	 */
 	@Override
 	public void onOrderCancelled(int symbol, long orderId, long qty) {
-		log.info("onOrderCancelled symbol :{} orderId :{}  qty :{}", symbol, orderId, qty);
+		log.info("onOrderCancelled symbol :{} orderId :{}", symbol, orderId);
+		this.deal(symbol, orderId, qty > 0
+								   ? OrderStatus.PARTIALLY_FILLED_CANCELED.val
+								   : OrderStatus.CANCELED.val)
+			.block();
+
 	}
 
 	/**
@@ -58,5 +76,22 @@ public class SimpleMatchEventProcess implements MatchEventProcessor {
 	@Override
 	public void onOrderRejected(int symbol, long orderId) {
 		log.info("onOrderRejected symbol :{} orderId :{}", symbol, orderId);
+		this.deal(symbol, orderId, OrderStatus.REJECTED.val)
+			.block();
+	}
+
+	@Override
+	public void onCompleted() {
+
+	}
+
+
+	private Mono<Integer> deal(int symbol, long orderId, int status) {
+		return template.update(OriginOrder.class)
+					   .matching(Query.query(Criteria.where("order_id")
+													 .is(orderId)
+													 .and("symbol")
+													 .is(symbol)))
+					   .apply(Update.update("status", status));
 	}
 }

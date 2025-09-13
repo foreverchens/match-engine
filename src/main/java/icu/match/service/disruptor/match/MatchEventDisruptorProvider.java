@@ -1,4 +1,4 @@
-package icu.match.service.disruptor.trade;/**
+package icu.match.service.disruptor.match;/**
  *
  * @author 中本君
  * @date 2025/9/10
@@ -19,14 +19,14 @@ import javax.annotation.Resource;
  * @date 2025/9/10 
  */
 @Component
-public class TradeEventDisruptorProvider extends AbstractDisruptorProvider<TradeEvent> {
+public class MatchEventDisruptorProvider extends AbstractDisruptorProvider<MatchEvent> {
 
 	@Resource
-	private MatchTradeEventHandler matchTradeEventHandler;
+	private MatchEventHandler matchEventHandler;
 
 	@Override
-	protected EventFactory<TradeEvent> eventFactory() {
-		return () -> new TradeEvent(new MatchTrade());
+	protected EventFactory<MatchEvent> eventFactory() {
+		return () -> new MatchEvent(new MatchTrade());
 	}
 
 	@Override
@@ -35,7 +35,7 @@ public class TradeEventDisruptorProvider extends AbstractDisruptorProvider<Trade
 	}
 
 	@Override
-	protected EventHandler<TradeEvent>[] eventHandlers() {
-		return new EventHandler[]{matchTradeEventHandler};
+	protected EventHandler<MatchEvent>[] eventHandlers() {
+		return new EventHandler[]{matchEventHandler};
 	}
 }

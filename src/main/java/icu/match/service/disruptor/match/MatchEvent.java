@@ -1,4 +1,4 @@
-package icu.match.service.disruptor.trade;/**
+package icu.match.service.disruptor.match;/**
  *
  * @author 中本君
  * @date 2025/9/10
@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TradeEvent {
+public class MatchEvent {
 
 	private MatchTrade matchTrade;
 

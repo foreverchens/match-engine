@@ -87,10 +87,12 @@ public class SimpleOrderBook implements BaseOrderBook {
 
 		// 计算可撮合数量 两者取小
 		long matchQty = Math.min(takerQty, makerOrder.qty);
+		boolean markerFilled = false;
 		if (makerOrder.qty == matchQty) {
 			// makerOrder 完全成交 takerOrder部分成交
 			// 将makerOrder从订单簿移除
 			ring.remove(bestPriceLevel.getPrice(), makerOrder.orderId);
+			markerFilled = true;
 			// marker被完全吃单后。如果价格当前整个流动性为空 需要检查窗口偏移情况
 			recenter.checkAndRecenter();
 		} else {
@@ -99,7 +101,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 			ring.patchQty(bestPriceLevel.getPrice(), makerOrder.orderId, makerOrder.qty - matchQty);
 		}
 		return matchTrade.fill(symbol, 0, makerOrder.userId, 0, makerOrder.orderId, takerSideCode,
-							   bestPriceLevel.getPrice(), matchQty);
+							   bestPriceLevel.getPrice(), markerFilled, matchQty);
 	}
 
 	@Override
@@ -120,7 +122,7 @@ public class SimpleOrderBook implements BaseOrderBook {
 		} else {
 			cold.submit(price, node);
 		}
-		return OrderStatus.PENDING;
+		return OrderStatus.OPEN;
 	}
 
 	@Override

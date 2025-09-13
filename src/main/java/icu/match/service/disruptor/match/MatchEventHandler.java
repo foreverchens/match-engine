@@ -1,4 +1,4 @@
-package icu.match.service.disruptor.trade;
+package icu.match.service.disruptor.match;
 
 import com.lmax.disruptor.EventHandler;
 
@@ -19,7 +19,7 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Component
-public class MatchTradeEventHandler implements EventHandler<TradeEvent> {
+public class MatchEventHandler implements EventHandler<MatchEvent> {
 
 	private final Sinks.Many<MatchTrade> sink = Sinks.many()
 													 .unicast()
@@ -45,8 +45,8 @@ public class MatchTradeEventHandler implements EventHandler<TradeEvent> {
 	}
 
 	@Override
-	public void onEvent(TradeEvent tradeEvent, long sequence, boolean endOfBatch) {
-		MatchTrade matchTrade = tradeEvent.getMatchTrade();
+	public void onEvent(MatchEvent matchEvent, long sequence, boolean endOfBatch) {
+		MatchTrade matchTrade = matchEvent.getMatchTrade();
 		log.info("received trade event :{}", matchTrade.getMatchSeq());
 		// 深拷贝/不可变，避免 Disruptor 复用对象被改
 		var r = sink.tryEmitNext(matchTrade);
