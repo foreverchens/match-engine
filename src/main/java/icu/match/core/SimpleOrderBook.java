@@ -91,13 +91,24 @@ public class SimpleOrderBook implements BaseOrderBook {
 		if (makerOrder.qty == matchQty) {
 			// makerOrder 完全成交 takerOrder部分成交
 			// 将makerOrder从订单簿移除
-			ring.remove(bestPriceLevel.getPrice(), makerOrder.orderId);
+			if (SnapshotManage.prepare) {
+				// 如果此时正在快照 更新前 将旧副本推入影子池
+				// 删除的旧副本为当前
+				SnapshotManage.put(makerOrder.orderId, makerOrder);
+			}
+			OrderNode remove = ring.remove(bestPriceLevel.getPrice(), makerOrder.orderId);
+			pool.free(remove);
 			markerFilled = true;
 			// marker被完全吃单后。如果价格当前整个流动性为空 需要检查窗口偏移情况
 			recenter.checkAndRecenter();
 		} else {
 			// makerOrder 部分成交 takerOrder完全成交
 			// 更新 makerOrder qty
+			if (SnapshotManage.prepare) {
+				// 如果此时正在快照 更新前 将旧副本推入影子池
+				// 修改的旧副本为当前
+				SnapshotManage.put(makerOrder.orderId, makerOrder.clone());
+			}
 			ring.patchQty(bestPriceLevel.getPrice(), makerOrder.orderId, makerOrder.qty - matchQty);
 		}
 		return matchTrade.fill(symbol, 0, makerOrder.userId, 0, makerOrder.orderId, takerSideCode,
@@ -117,6 +128,11 @@ public class SimpleOrderBook implements BaseOrderBook {
 		OrderNode node = pool.alloc(orderInfo.getOrderId(), orderInfo.getUserId(),
 									OrderSide.isAsk(orderInfo.getSide()),
 									orderInfo.getQty());
+		if (SnapshotManage.prepare) {
+			// 如果此时正在快照 更新前 将旧副本推入影子池
+			// 新增的旧副本为null
+			SnapshotManage.put(orderInfo.getOrderId(), null);
+		}
 		if (ring.isWindow(price)) {
 			ring.submit(price, node);
 		} else {

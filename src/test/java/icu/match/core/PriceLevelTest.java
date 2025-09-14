@@ -71,7 +71,6 @@ class PriceLevelTest {
 		assertSame(a, lvl.getFirst());
 
 		// 可视化顺序：a -> b -> c
-		assertDumpContainsInOrder(lvl, 1001L, 1002L, 1003L);
 		assertLevelIntegrity(lvl);
 
 		// patch 数量：b: 20 -> 25
@@ -114,23 +113,8 @@ class PriceLevelTest {
 		assertEquals(0, lvl.size());
 		assertEquals(0L, lvl.totalQty());
 		assertLevelIntegrity(lvl);
-
-		// dump 可视化不应报错
-		String snapshot = lvl.dump();
-		assertNotNull(snapshot);
-		assertTrue(snapshot.contains("PriceLevel"));
 	}
 
-	private void assertDumpContainsInOrder(PriceLevel lvl, long... idsInOrder) {
-		String dump = lvl.dump();
-		int lastIdx = -1;
-		for (long id : idsInOrder) {
-			int pos = dump.indexOf("(id=" + id + ",");
-			assertTrue(pos >= 0, "dump not contains id=" + id + "\n" + dump);
-			assertTrue(pos > lastIdx, "order mismatch around id=" + id + "\n" + dump);
-			lastIdx = pos;
-		}
-	}
 
 	// ----------------------- 用例：常规路径 -----------------------
 

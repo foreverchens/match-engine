@@ -64,6 +64,18 @@ public final class OrderNode {
 	}
 
 	@Override
+	protected OrderNode clone() {
+		try {
+			OrderNode clone = (OrderNode) super.clone();
+			clone.prev = null;
+			clone.next = null;
+			return clone;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	@Override
 	public String toString() {
 		return "OrderNode{orderId=" + orderId + ", userId=" + userId + ", qty=" + qty + '}';
 	}

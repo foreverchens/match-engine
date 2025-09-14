@@ -6,11 +6,10 @@ package icu.match.service.match.snapshot;/**
 
 import org.springframework.stereotype.Component;
 
-import icu.match.service.match.MatchEngine;
+import icu.match.core.snapshot.CowPool;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 
 /**
  * @author 中本君
@@ -18,14 +17,13 @@ import javax.annotation.Resource;
  */
 @Slf4j
 @Component
-public class SnapshotManage {
-
-	@Resource
-	private MatchEngine matchingEngine;
+public class SnapshotManage extends CowPool {
 
 
 	@PostConstruct
 	public void init() {
-		matchingEngine.depth();
+
 	}
+
+
 }

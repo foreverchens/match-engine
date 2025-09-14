@@ -72,7 +72,6 @@ public class OrderQueue {
 		if (byId.containsKey(node.orderId)) {
 			throw new IllegalStateException("duplicate orderId in queue: " + node.orderId);
 		}
-
 		linkAtTail(node);
 		byId.put(node.orderId, node);
 		size++;
@@ -166,41 +165,5 @@ public class OrderQueue {
 		totalQty = 0L;
 		byId.clear();
 		return first;
-	}
-
-	/**
-	 * 生成队列快照（检测环并提前终止）。
-	 */
-	public String dump() {
-		StringBuilder sb = new StringBuilder(128 + size * 48);
-		sb.append("OrderQueue{size=")
-		  .append(size)
-		  .append(", totalQty=")
-		  .append(totalQty)
-		  .append("}\n [HEAD] ");
-		int visited = 0;
-		OrderNode cur = head;
-		while (cur != null) {
-			sb.append("(id=")
-			  .append(cur.orderId)
-			  .append(", qty=")
-			  .append(cur.qty)
-			  .append(", t=")
-			  .append(cur.time)
-			  .append(", pooled=")
-			  .append(cur.pooled)
-			  .append(")");
-			cur = cur.next;
-			visited++;
-			if (cur != null) {
-				sb.append(" -> ");
-			}
-			if (visited > size && size > 0) {
-				sb.append(" ...[cycle detected]");
-				break;
-			}
-		}
-		sb.append(" [TAIL]");
-		return sb.toString();
 	}
 }

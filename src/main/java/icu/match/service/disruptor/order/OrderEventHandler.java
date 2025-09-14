@@ -5,6 +5,7 @@ import com.lmax.disruptor.EventHandler;
 import org.springframework.stereotype.Component;
 
 import icu.match.common.OrderEventType;
+import icu.match.core.SnapshotManage;
 import icu.match.core.model.OrderInfo;
 import icu.match.core.wal.TxContext;
 import icu.match.core.wal.WalAppender;
@@ -40,6 +41,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 	@Override
 	@SneakyThrows
 	public void onEvent(OrderEvent event, long sequence, boolean endOfBatch) {
+		SnapshotManage.writing = true;
 		try {
 			OrderEventType orderEventType = OrderEventType.get(event.getEventTypeCode());
 			OrderInfo orderInfo = event.getOrderInfo();
@@ -63,6 +65,7 @@ public class OrderEventHandler implements EventHandler<OrderEvent> {
 			}
 		} finally {
 			event.reset();
+			SnapshotManage.writing = false;
 		}
 	}
 

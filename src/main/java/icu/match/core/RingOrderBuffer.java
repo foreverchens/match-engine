@@ -3,6 +3,7 @@ package icu.match.core;
 import com.alibaba.fastjson2.JSON;
 
 import icu.match.common.OrderSide;
+import icu.match.core.model.SnapshotView;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -570,6 +571,46 @@ public final class RingOrderBuffer {
 			}
 		}
 		return JSON.toJSONString(Arrays.asList(bids, asks));
+	}
+
+	public SnapshotView snapshot() {
+		SnapshotView snapshot = new SnapshotView();
+		for (int i = lowIdx; i != bestAskIdx; i = getRightIdx(i)) {
+			PriceLevel lvl = levels[i];
+			if (lvl.isEmpty()) {
+				continue;
+			}
+			OrderNode head = lvl.getFirst();
+			while (head != null) {
+				long orderId = head.orderId;
+				OrderNode tmp = head;
+				OrderNode cowObj = SnapshotManage.get(orderId);
+				if (cowObj != null) {
+					tmp = cowObj;
+				}
+				snapshot.appendBid(lvl.getPrice(), tmp.userId, tmp.orderId, tmp.qty);
+				head = head.next;
+			}
+		}
+
+		for (int i = bestAskIdx; i != highIdx; i = getRightIdx(i)) {
+			PriceLevel lvl = levels[i];
+			if (lvl.isEmpty()) {
+				continue;
+			}
+			OrderNode head = lvl.getFirst();
+			while (head != null) {
+				long orderId = head.orderId;
+				OrderNode tmp = head;
+				OrderNode cowObj = SnapshotManage.get(orderId);
+				if (cowObj != null) {
+					tmp = cowObj;
+				}
+				snapshot.appendAsk(lvl.getPrice(), tmp.userId, tmp.orderId, tmp.qty);
+				head = head.next;
+			}
+		}
+		return snapshot;
 	}
 
 	private int getRightIdx(int idx) {

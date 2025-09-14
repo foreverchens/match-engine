@@ -1,6 +1,5 @@
 package icu.match.core;
 
-import icu.match.common.OrderSide;
 import lombok.Getter;
 
 /**
@@ -93,16 +92,6 @@ public final class PriceLevel {
 	 */
 	public long totalQty() {return queue.getTotalQty();}
 
-	/**
-	 * 生成快照
-	 */
-	public String dump() {
-		String side = ask
-					  ? OrderSide.ASK.toString()
-					  : OrderSide.BID.toString();
-		return "PriceLevel{price=" + price + ", side=" + side + ", size=" + queue.getSize() + ", totalQty=" +
-			   queue.getTotalQty() + "}\n" + queue.dump();
-	}
 
 	/**
 	 * 返回快照：队列中订单数量用 "->" 拼接

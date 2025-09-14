@@ -10,6 +10,7 @@ import icu.match.common.SymbolConstant;
 import icu.match.core.ColdOrderBuffer;
 import icu.match.core.RingOrderBuffer;
 import icu.match.core.SimpleOrderBook;
+import icu.match.core.SnapshotManage;
 import icu.match.core.interfaces.BaseOrderBook;
 import icu.match.core.interfaces.MatchEventProcessor;
 import icu.match.core.model.BestLiqView;
@@ -22,6 +23,7 @@ import javax.annotation.Resource;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 单线程撮合引擎（基于热区环形数组 + 冷区红黑树）。
@@ -58,6 +60,11 @@ public final class MatchEngine {
 		SimpleOrderBook orderBook = new SimpleOrderBook(ring, cold);
 		orderBookMap.put(symbol.getSymbolId(), orderBook);
 		init(symbol.getSymbolId(), orderBook);
+
+		// 快照线程
+		CompletableFuture.runAsync(() -> {
+			new SnapshotManage(ring, cold).start();
+		});
 
 	}
 

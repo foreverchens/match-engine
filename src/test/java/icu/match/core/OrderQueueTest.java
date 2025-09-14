@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -110,9 +109,6 @@ class OrderQueueTest {
 		assertEquals(60, q.getTotalQty());
 		assertSame(a, q.peek());
 
-		// 可视化：顺序 a -> b -> c
-		assertDumpOrder(q, 101, 102, 103);
-		assertQueueIntegrity(q);
 
 		// patch b: 20 -> 25
 		assertTrue(q.patchQty(102, 25));
@@ -124,7 +120,6 @@ class OrderQueueTest {
 		assertNotNull(rb);
 		assertEquals(2, q.getSize());
 		assertEquals(40, q.getTotalQty());
-		assertDumpOrder(q, 101, 103);
 		assertQueueIntegrity(q);
 
 		// 回收被移除的节点（先确保彻底摘链）
@@ -151,17 +146,6 @@ class OrderQueueTest {
 		assertQueueIntegrity(q);
 	}
 
-	/** 断言 dump() 中订单 id 的出现顺序（仅校验包含与顺序，不校验完整性）。 */
-	private void assertDumpOrder(OrderQueue q, long... idsInOrder) {
-		String dump = q.dump();
-		int lastIdx = -1;
-		for (long id : idsInOrder) {
-			int pos = dump.indexOf("(id=" + id + ",");
-			assertTrue(pos >= 0, "dump not contains id=" + id + " \n" + dump);
-			assertTrue(pos > lastIdx, "id order mismatch around " + id + " \n" + dump);
-			lastIdx = pos;
-		}
-	}
 
 	// ----------- 用例：常规路径 -----------
 
@@ -232,17 +216,11 @@ class OrderQueueTest {
 		assertTrue(ex.getMessage()
 					 .contains("duplicate"), ex.getMessage());
 
-		// dump 仍然可读，且只包含 id=1 一次
-		String dump = q.dump();
-		assertTrue(Pattern.compile("\\(id=1,")
-						  .matcher(dump)
-						  .find());
 		// 清理
 		OrderNode r = q.remove(1);
 		r.prev = r.next = null;
 		pool.free(r);
 		pool.free(b);
-		log.info(dump);
 	}
 
 	@Test
@@ -325,9 +303,6 @@ class OrderQueueTest {
 		// 人为制造一个环：b.next 指回 a，a.prev 指向 b（请勿在生产代码这样做）
 		b.next = a;
 		a.prev = b;
-
-		String dump = q.dump();
-		assertTrue(dump.contains("cycle detected"), "expected cycle detection message in dump:\n" + dump);
 
 		// 解除环并清理
 		a.prev = null;
@@ -454,9 +429,6 @@ class OrderQueueTest {
 		// 4) 量纲核对
 		assertEquals(expectedTotalQty, sumQty, "遍历累计 qty 与 totalQty 不一致");
 
-		// 5) dump() 不应提示环
-		String dump = q.dump();
-		assertFalse(dump.contains("cycle detected"), "dump 提示了环存在：\n" + dump);
 	}
 
 	// ---------- 用例 2：重复 remove（幂等性） ----------
