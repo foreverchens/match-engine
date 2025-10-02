@@ -7,6 +7,7 @@ package icu.match.web.route;/**
 import org.springdoc.core.annotations.RouterOperation;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.reactive.function.server.RequestPredicates;
@@ -52,6 +53,15 @@ public class WebRouteConfig {
 							  .POST("/api/order.bin",
 									RequestPredicates.contentType(MediaType.APPLICATION_OCTET_STREAM),
 									h::placeOrder)
+							  .build();
+	}
+
+	@Bean
+	public RouterFunction<ServerResponse> homepage() {
+		return RouterFunctions.route()
+							  .GET("/", request -> ServerResponse.ok()
+																 .bodyValue(new ClassPathResource(
+																		 "static/trade" + ".html")))
 							  .build();
 	}
 }
