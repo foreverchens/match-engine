@@ -277,6 +277,7 @@ sequenceDiagram
 | Method | Path                | 描述                                |
 |--------|---------------------|-----------------------------------|
 | POST   | `/api/order`        | 提交限价单 / 市价单，返回撮合结果与成交事件。          |
+| POST   | `/api/order.bin`    | 字节流下单。                            |
 | POST   | `/api/order/cancel` | 根据 `symbol + orderId + price` 撤单。 |
 | GET    | `/api/order/trades` | 拉取最新成交列表。                         |
 
@@ -308,10 +309,6 @@ curl -X POST http://localhost:8080/api/order/cancel \
     "userId": 1001,
     "orderId": 90000001,
     "symbol": 1,
-    "side": 0,
-    "type": 0,
-    "tif": 0,
-    "qty": 0,
     "price": 300000
   }'
 ```
